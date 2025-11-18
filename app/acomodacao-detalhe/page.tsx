@@ -157,18 +157,6 @@ export default function AcomodacaoDetalhePage() {
                   <Button variant="secondary" onClick={() => abrirPopupTransporte(idx)}>Info</Button>
                 </div>
               </div>
-              {/* Origem para deslocamento no dia da volta */}
-              <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 p-2">
-                <p className="text-sm font-medium text-blue-900">Origem do deslocamento na VOLTA (Calendário)</p>
-                <p className="text-xs text-blue-800">
-                  No dia da volta, usamos a <span className="font-semibold">acomodação desta cidade</span> como origem para ir ao aeroporto. Se não houver endereço, usamos o <span className="font-semibold">Endereço do Passageiro</span>.
-                </p>
-                {(c.endereco || c.hotelNome) ? (
-                  <p className="text-xs text-blue-900"><span className="font-medium">Origem:</span> {(c.endereco || c.hotelNome)} — Acomodação</p>
-                ) : (
-                  <p className="text-xs text-amber-800">Informe o endereço/nome do hotel para usarmos como origem na volta.</p>
-                )}
-              </div>
               <div className="mt-2 grid gap-2">
                 <label className="text-sm">Telefone (opcional)</label>
                 <Input value={c.telefone || ""} onChange={(e) => setCidades((prev) => prev.map((cc, i) => i === idx ? { ...cc, telefone: e.target.value } : cc))} placeholder="(DDD) XXXX-XXXX" />
@@ -220,9 +208,6 @@ export default function AcomodacaoDetalhePage() {
                 )}
               </ul>
               {popupInfo.aviso ? <p className="mt-2 text-xs text-slate-500">{popupInfo.aviso}</p> : null}
-              <p className="mt-2 text-xs text-slate-500">
-                Os valores de preço e tempo são estimativas de referência obtidas de fontes públicas na internet; podem variar e conter discrepâncias.
-              </p>
             </div>
           )}
           <DialogFooter>

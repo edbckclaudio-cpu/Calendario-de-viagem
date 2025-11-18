@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { auth, loadTrip, updateTrip, indexTripForEmail } from "@/lib/firebase";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
-import { airportCoordsByIATA, cityCenterCoordsByName, parseCoordsFromAddress, haversineDistanceKm, estimateTransportOptions, deriveTransportOrigin } from "@/lib/utils";
+import { airportCoordsByIATA, cityCenterCoordsByName, parseCoordsFromAddress, haversineDistanceKm, estimateTransportOptions } from "@/lib/utils";
 
 type Evento = { data: string; hora?: string; tipo: string; local?: string; descricao?: string; url?: string; source?: { kind: "atividade"; idx: number } };
 
@@ -30,7 +30,6 @@ export default function CalendarioPage() {
     diaAnterior?: boolean;
     aviso?: string;
     gmapsUrl?: string;
-    source?: "passageiro" | "acomodacao";
   }>(null);
 
   useEffect(() => {
@@ -118,16 +117,15 @@ export default function CalendarioPage() {
         return (code && map[code]) || code || "";
       };
       const ap = airportCoordsByIATA(aeroportoOrigem || undefined);
-      // Define origem: em Voo IDA, use sempre o endereço dos Dados do Passageiro; em Voo VOLTA, use a acomodação da cidade ativa
+      // tenta obter endereço da cidade ativa no dia
       const c = getCityForDate(dStr);
-      const isIda = f.tipo === "Voo IDA";
-      const { address: addressRaw, source: addressSource } = deriveTransportOrigin(trip, c || undefined, isIda);
+      const addressRaw = c ? ((c.endereco || c.hotelNome || "").trim()) : "";
       // Se não houver endereço, tenta centro da cidade; caso não haja cidade, mostra aviso
       setTransportLoading(true);
       let addrCoords = parseCoordsFromAddress(addressRaw);
-      if (!addrCoords && addressRaw) {
+      if (!addrCoords && addressRaw && c?.nome) {
         try {
-          const q = !isIda && c?.nome ? `${addressRaw} ${c.nome}` : addressRaw;
+          const q = `${addressRaw} ${c.nome}`;
           const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
           if (res.ok) {
             const j = await res.json();
@@ -138,7 +136,7 @@ export default function CalendarioPage() {
       if (!addrCoords && c?.nome) addrCoords = cityCenterCoordsByName(c.nome) || null;
 
       // Monta link do Google Maps: origem = endereço, destino = aeroporto
-      const originParam = addrCoords ? `${addrCoords.lat},${addrCoords.lon}` : (addressRaw ? (c?.nome ? `${addressRaw} ${c.nome}` : `${addressRaw}`) : "");
+      const originParam = addrCoords ? `${addrCoords.lat},${addrCoords.lon}` : (addressRaw && c?.nome ? `${addressRaw} ${c.nome}` : "");
       const destParam = ap ? `${ap.lat},${ap.lon}` : (aeroportoOrigem || "");
       const destinoEndereco = airportLabel(aeroportoOrigem);
       const gmapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(originParam)}&destination=${encodeURIComponent(destParam)}&travelmode=driving`;
@@ -150,15 +148,8 @@ export default function CalendarioPage() {
           destinoEndereco,
           distanciaKm: null,
           tempoEstimadoMin: null,
-          aviso: addressRaw
-            ? "Estimativa aproximada: faltam coordenadas precisas."
-            : (isIda
-              ? "Informe seu endereço de partida em 'Dados do Passageiro' ou em 'Buscador de Vôo'."
-              : (c?.nome
-                ? "Informe o endereço da acomodação para estimar deslocamento."
-                : "Informe o endereço de partida em 'Dados do Passageiro'.")),
+          aviso: addressRaw ? "Estimativa aproximada: faltam coordenadas precisas." : "Informe o endereço da acomodação para estimar deslocamento.",
           gmapsUrl,
-          source: addressSource,
         });
         setTransportLoading(false);
         return;
@@ -199,7 +190,6 @@ export default function CalendarioPage() {
         modoUsado,
         diaAnterior,
         gmapsUrl,
-        source: addressSource,
       });
       setTransportLoading(false);
     }
@@ -357,25 +347,289 @@ export default function CalendarioPage() {
     return lines.join("\r\n");
   }
 
+  function computeTransportFromAccommodationToAirport(dateStr?: string, airportCode?: string, flightHora?: string) {
+    const c = getCityForDate(dateStr);
+    const ap = airportCoordsByIATA(airportCode || undefined);
+    const addressRaw = c ? ((c.endereco || c.hotelNome || "").trim()) : "";
+    let addrCoords = parseCoordsFromAddress(addressRaw);
+    if (!addrCoords && c?.nome) addrCoords = cityCenterCoordsByName(c.nome) || null;
+    const distKm = addrCoords && ap ? haversineDistanceKm(ap, addrCoords) : null;
+    let tempoMin: number | null = null;
+    let modoUsado: string | undefined = undefined;
+    if (distKm !== null) {
+      const opts = estimateTransportOptions(distKm, c?.nome);
+      const fastest = opts.reduce((prev, cur) => (cur.tempoEstimadoMin < prev.tempoEstimadoMin ? cur : prev));
+      tempoMin = fastest.tempoEstimadoMin;
+      modoUsado = fastest.modo;
+    }
+    let horaSaida: string | undefined = undefined;
+    let diaAnterior = false;
+    if (dateStr && flightHora && tempoMin !== null) {
+      const dt = new Date(`${dateStr}T${flightHora}:00`);
+      const leaveMs = dt.getTime() - (3 * 60 + tempoMin) * 60000;
+      const leave = new Date(leaveMs);
+      const hh = String(leave.getHours()).padStart(2, "0");
+      const mm = String(leave.getMinutes()).padStart(2, "0");
+      horaSaida = `${hh}:${mm}`;
+      const leaveDayStr = leave.toISOString().slice(0, 10);
+      diaAnterior = !!(leaveDayStr < dateStr);
+    }
+    const originParam = addrCoords ? `${addrCoords.lat},${addrCoords.lon}` : (addressRaw && c?.nome ? `${addressRaw} ${c.nome}` : "");
+    const destParam = ap ? `${ap.lat},${ap.lon}` : (airportCode || "");
+    const gmapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(originParam)}&destination=${encodeURIComponent(destParam)}&travelmode=driving`;
+    return {
+      endereco: addressRaw || undefined,
+      distanciaKm: distKm !== null ? Math.round(distKm * 10) / 10 : null,
+      tempoEstimadoMin: tempoMin,
+      modoUsado,
+      horaSaidaSugerida: horaSaida,
+      diaAnterior,
+      gmapsUrl,
+    };
+  }
+
+  function computeTransportFromAirportToAccommodation(dateStr?: string, airportCode?: string) {
+    const c = getCityForDate(dateStr);
+    const ap = airportCoordsByIATA(airportCode || undefined);
+    const addressRaw = c ? ((c.endereco || c.hotelNome || "").trim()) : "";
+    let addrCoords = parseCoordsFromAddress(addressRaw);
+    if (!addrCoords && c?.nome) addrCoords = cityCenterCoordsByName(c.nome) || null;
+    const distKm = addrCoords && ap ? haversineDistanceKm(ap, addrCoords) : null;
+    let tempoMin: number | null = null;
+    let modoUsado: string | undefined = undefined;
+    if (distKm !== null) {
+      const opts = estimateTransportOptions(distKm, c?.nome);
+      const fastest = opts.reduce((prev, cur) => (cur.tempoEstimadoMin < prev.tempoEstimadoMin ? cur : prev));
+      tempoMin = fastest.tempoEstimadoMin;
+      modoUsado = fastest.modo;
+    }
+    const originParam = ap ? `${ap.lat},${ap.lon}` : (airportCode || "");
+    const destParam = addrCoords ? `${addrCoords.lat},${addrCoords.lon}` : (addressRaw && c?.nome ? `${addressRaw} ${c.nome}` : "");
+    const gmapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(originParam)}&destination=${encodeURIComponent(destParam)}&travelmode=driving`;
+    return {
+      endereco: addressRaw || undefined,
+      distanciaKm: distKm !== null ? Math.round(distKm * 10) / 10 : null,
+      tempoEstimadoMin: tempoMin,
+      modoUsado,
+      gmapsUrl,
+    };
+  }
+
+  function buildICSWithTransportDetails() {
+    const lines: string[] = [];
+    lines.push("BEGIN:VCALENDAR");
+    lines.push("VERSION:2.0");
+    lines.push("PRODID:-//TRAE//Calendario Viagem Detalhado//PT");
+    eventos.forEach((e, idx) => {
+      const dtstart = toIcsDate(e.data, e.hora);
+      const endRef = toIcsDate(e.data, e.hora);
+      lines.push("BEGIN:VEVENT");
+      if (dtstart) lines.push(`DTSTART:${dtstart}`);
+      if (endRef) lines.push(`DTEND:${endRef}`);
+      const summary = `${e.tipo}${e.local ? " — " + e.local : ""}`;
+      lines.push(`SUMMARY:${summary}`);
+      const descParts: string[] = [];
+      if (e.descricao) descParts.push(e.descricao);
+      let mapsUrlForEvent: string | undefined = e.url;
+      const originBase = typeof window !== "undefined" ? window.location.origin : "";
+      const addAccommodationLinks = (cidade?: string, checkin?: string, checkout?: string) => {
+        const c = cidade || computeCityLabel();
+        const dIni = (checkin || trip?.dataInicio || "").slice(0, 10);
+        const dFim = (checkout || trip?.dataFim || "").slice(0, 10);
+        const booking = `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(c)}&checkin=${encodeURIComponent(dIni)}&checkout=${encodeURIComponent(dFim)}`;
+        const trivago = `https://www.trivago.com/?aDateRange%5Barr%5D=${encodeURIComponent(dIni)}&aDateRange%5Bdep%5D=${encodeURIComponent(dFim)}&sQuery=${encodeURIComponent(c)}`;
+        const hoteis = `https://www.hoteis.com/Search.do?destination=${encodeURIComponent(c)}&checkIn=${encodeURIComponent(dIni)}&checkOut=${encodeURIComponent(dFim)}`;
+        const airbnb = `https://www.airbnb.com/s/${encodeURIComponent(c)}/homes?checkin=${encodeURIComponent(dIni)}&checkout=${encodeURIComponent(dFim)}`;
+        descParts.push(`Links de reserva: Booking ${booking}`);
+        descParts.push(`Trivago ${trivago}`);
+        descParts.push(`Hoteis.com ${hoteis}`);
+        descParts.push(`Airbnb ${airbnb}`);
+      };
+      const addTripAdvisorLink = (nome?: string, cidade?: string) => {
+        const q = [nome, cidade, "restaurante"].filter(Boolean).join(" ");
+        const ta = `https://www.tripadvisor.com.br/Search?q=${encodeURIComponent(q)}`;
+        descParts.push(`TripAdvisor ${ta}`);
+      };
+      const addGmapsSearchLink = (q?: string, cidade?: string) => {
+        const query = [q, cidade].filter(Boolean).join(" ");
+        const url = `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+        descParts.push(`Google Maps ${url}`);
+      };
+      const addFlightSearchLinks = (orig?: string, dest?: string, d?: string) => {
+        if (!orig || !dest || !d) return;
+        const kayak = `https://www.kayak.com/flights/${encodeURIComponent(orig)}-${encodeURIComponent(dest)}/${encodeURIComponent(d)}`;
+        const gfl = `https://www.google.com/travel/flights?hl=pt-BR#flt=${encodeURIComponent(orig)}.${encodeURIComponent(dest)}.${encodeURIComponent(d)}`;
+        descParts.push(`Kayak ${kayak}`);
+        descParts.push(`Google Flights ${gfl}`);
+      };
+      if (e.tipo.includes("Voo")) {
+        const dStr = e.data?.slice(0, 10);
+        let origemCode: string | undefined;
+        let destinoCode: string | undefined;
+        if (e.tipo.includes("IDA")) {
+          origemCode = trip?.buscaVoo?.ida?.origem || trip?.buscaVoo?.origem;
+          destinoCode = trip?.buscaVoo?.ida?.destino || trip?.buscaVoo?.destino;
+        } else if (e.tipo.includes("VOLTA")) {
+          origemCode = trip?.buscaVoo?.volta?.origem || trip?.buscaVoo?.destino;
+          destinoCode = trip?.buscaVoo?.volta?.destino || trip?.buscaVoo?.origem;
+        }
+        const idaInfo = computeTransportFromAccommodationToAirport(dStr, origemCode, e.hora);
+        if (idaInfo.distanciaKm !== null || idaInfo.tempoEstimadoMin !== null) {
+          const partes: string[] = [];
+          if (idaInfo.horaSaidaSugerida) partes.push(`Sair às ${idaInfo.horaSaidaSugerida}${idaInfo.diaAnterior ? " (dia anterior)" : ""}`);
+          if (idaInfo.distanciaKm !== null) partes.push(`Distância: ${idaInfo.distanciaKm} km`);
+          if (idaInfo.tempoEstimadoMin !== null) partes.push(`Tempo estimado: ${idaInfo.tempoEstimadoMin} min`);
+          if (idaInfo.modoUsado) partes.push(`Modo: ${idaInfo.modoUsado}`);
+          descParts.push(`Saída para o aeroporto — ${partes.join(" — ")}`);
+          mapsUrlForEvent = mapsUrlForEvent || `${originBase}/buscador-voo?tripId=${encodeURIComponent(tripId || "")}`;
+          if (!mapsUrlForEvent && idaInfo.gmapsUrl) mapsUrlForEvent = idaInfo.gmapsUrl;
+        }
+        const chegadaInfo = computeTransportFromAirportToAccommodation(dStr, destinoCode);
+        if (chegadaInfo.distanciaKm !== null || chegadaInfo.tempoEstimadoMin !== null) {
+          const partes2: string[] = [];
+          if (chegadaInfo.distanciaKm !== null) partes2.push(`Distância: ${chegadaInfo.distanciaKm} km`);
+          if (chegadaInfo.tempoEstimadoMin !== null) partes2.push(`Tempo estimado: ${chegadaInfo.tempoEstimadoMin} min`);
+          if (chegadaInfo.modoUsado) partes2.push(`Modo: ${chegadaInfo.modoUsado}`);
+          descParts.push(`Aeroporto → acomodação — ${partes2.join(" — ")}`);
+          if (!mapsUrlForEvent && chegadaInfo.gmapsUrl) mapsUrlForEvent = chegadaInfo.gmapsUrl;
+        }
+        // Adiciona links de busca de voos
+        addFlightSearchLinks(origemCode, destinoCode, dStr);
+        const cidadeBase = computeCityLabel();
+        addAccommodationLinks(cidadeBase, trip?.dataInicio, trip?.dataFim);
+      }
+
+      if (e.tipo.includes("Check-in") || e.tipo.includes("Check-out")) {
+        const cidadeObj = (trip.cidadesAcomodacao || []).find((c: any) => c.nome === e.local);
+        addAccommodationLinks(cidadeObj?.nome || e.local, cidadeObj?.dataChegada, cidadeObj?.dataSaida);
+        mapsUrlForEvent = mapsUrlForEvent || `${originBase}/acomodacao-detalhe?tripId=${encodeURIComponent(tripId || "")}`;
+      }
+
+      if (e.tipo.includes("Reserva") || e.tipo.includes("Atividade")) {
+        const cidadeObj = (trip.cidadesAcomodacao || []).find((c: any) => c.nome === (e.local || c?.nome));
+        addTripAdvisorLink(e.local, cidadeObj?.nome || computeCityLabel());
+        addGmapsSearchLink(e.local, cidadeObj?.nome || computeCityLabel());
+      }
+      if (descParts.length) lines.push(`DESCRIPTION:${descParts.join("\\n")}`);
+      if (mapsUrlForEvent) lines.push(`URL:${mapsUrlForEvent}`);
+      lines.push(`UID:trae-det-${tripId}-${idx}`);
+      lines.push("END:VEVENT");
+
+      if (e.tipo.includes("Voo")) {
+        const dStr = e.data?.slice(0, 10);
+        let origemCode: string | undefined;
+        if (e.tipo.includes("IDA")) {
+          origemCode = trip?.buscaVoo?.ida?.origem || trip?.buscaVoo?.origem;
+        } else if (e.tipo.includes("VOLTA")) {
+          origemCode = trip?.buscaVoo?.volta?.origem || trip?.buscaVoo?.destino;
+        }
+        const idaInfo = computeTransportFromAccommodationToAirport(dStr, origemCode, e.hora);
+        if (idaInfo.horaSaidaSugerida) {
+          const leaveDt = toIcsDate(dStr, idaInfo.horaSaidaSugerida);
+          lines.push("BEGIN:VEVENT");
+          if (leaveDt) lines.push(`DTSTART:${leaveDt}`);
+          if (leaveDt) lines.push(`DTEND:${leaveDt}`);
+          lines.push(`SUMMARY:Saída para o aeroporto`);
+          const detalhes = [`Horário sugerido: ${idaInfo.horaSaidaSugerida}${idaInfo.diaAnterior ? " (dia anterior)" : ""}`];
+          if (idaInfo.tempoEstimadoMin !== null) detalhes.push(`Deslocamento estimado: ${idaInfo.tempoEstimadoMin} min`);
+          if (idaInfo.modoUsado) detalhes.push(`Modo: ${idaInfo.modoUsado}`);
+          lines.push(`DESCRIPTION:${detalhes.join(" — ")}`);
+          if (idaInfo.gmapsUrl) lines.push(`URL:${idaInfo.gmapsUrl}`);
+          lines.push(`UID:trae-leave-${tripId}-${idx}`);
+          lines.push("END:VEVENT");
+        }
+      }
+    });
+    lines.push("END:VCALENDAR");
+    return lines.join("\r\n");
+  }
+
+  async function publishIcsToServer(icsText: string) {
+    try {
+      if (!tripId) return;
+      await fetch(`/api/ics-store/${tripId}`, {
+        method: "POST",
+        headers: { "Content-Type": "text/calendar; charset=utf-8" },
+        body: icsText,
+      });
+    } catch {}
+  }
+
+  function handleSalvarNoCalendarioDispositivo() {
+    const ics = buildICSWithTransportDetails();
+    // Publica ICS no servidor para assinatura dinâmica
+    publishIcsToServer(ics);
+    // 1) Tentar assinatura via webcal usando o endpoint /api/ics
+    try {
+      const httpUrl = `${window.location.origin}/api/ics/${tripId}`;
+      const webcalUrl = `webcal://${httpUrl.replace(/^https?:\/\//, "")}`;
+      const tmpLink = document.createElement("a");
+      tmpLink.href = webcalUrl;
+      tmpLink.style.display = "none";
+      document.body.appendChild(tmpLink);
+      tmpLink.click();
+      document.body.removeChild(tmpLink);
+    } catch {}
+    // 2) Fallback: baixar o arquivo ICS diretamente
+    try {
+      const blob = new Blob([ics], { type: "text/calendar" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "trae-calendario-detalhado.ics";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch {}
+  }
+
   function handleEnviarEmail() {
     const email = localStorage.getItem("trae_email") || "";
     if (!email) {
       alert("Faça login com seu e-mail na página inicial.");
       return;
     }
-    const ics = buildICS();
+    // Usa o ICS detalhado (com deslocamentos e horário sugerido de saída)
+    const ics = buildICSWithTransportDetails();
+    // Publica ICS no servidor para assinatura dinâmica
+    publishIcsToServer(ics);
+    // 1) Tenta assinatura via webcal primeiro
+    try {
+      const httpUrl = `${window.location.origin}/api/ics/${tripId}`;
+      const webcalUrl = `webcal://${httpUrl.replace(/^https?:\/\//, "")}`;
+      const tmpLink = document.createElement("a");
+      tmpLink.href = webcalUrl;
+      tmpLink.style.display = "none";
+      document.body.appendChild(tmpLink);
+      tmpLink.click();
+      document.body.removeChild(tmpLink);
+    } catch {}
+    // 2) Em paralelo, baixa o ICS e tenta abrir no handler
     const blob = new Blob([ics], { type: "text/calendar" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "trae-calendario.ics";
+    a.download = "trae-calendario-detalhado.ics";
+    document.body.appendChild(a);
     a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-
-    const resumo = eventos.map((e) => `${e.data?.slice(0,10)}${e.hora ? " " + e.hora : ""} — ${e.tipo}${e.local ? " — " + e.local : ""}${e.descricao ? " — " + e.descricao : ""}`).join("\n");
-    const subject = `Calendário TRAE — ${computeCityLabel()}`;
-    const body = `Olá,\n\nSegue o calendário da viagem (arquivo .ics baixado automaticamente).\n\nResumo:\n${resumo}\n\nLink do calendário no site: ${window.location.origin}/calendario?tripId=${tripId}`;
-    window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    document.body.removeChild(a);
+    try {
+      const popup = window.open(url, "_blank", "noopener,noreferrer");
+      if (!popup) {
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        setTimeout(() => { try { document.body.removeChild(iframe); } catch {} }, 3000);
+      }
+    } catch {}
+    // Aguarda um curto período para não cancelar o download ao abrir o e-mail
+    setTimeout(() => {
+      const resumo = eventos.map((e) => `${e.data?.slice(0,10)}${e.hora ? " " + e.hora : ""} — ${e.tipo}${e.local ? " — " + e.local : ""}${e.descricao ? " — " + e.descricao : ""}`).join("\n");
+      const subject = `Calendário TRAE — ${computeCityLabel()}`;
+      const body = `Olá,\n\nO calendário (.ics) foi baixado automaticamente; abra-o para adicionar ao seu calendário.\n\nResumo:\n${resumo}\n\nLink do calendário no site: ${window.location.origin}/calendario?tripId=${tripId}`;
+      window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }, 1200);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
 
   async function handleSalvarViagem() {
@@ -405,6 +659,11 @@ export default function CalendarioPage() {
               <Button variant="secondary" onClick={handleSalvarViagem}>Salvar esta viagem</Button>
               <Button onClick={handleEnviarEmail}>Enviar calendário por email</Button>
             </div>
+          </div>
+          <div className="mt-2">
+            <Button onClick={handleSalvarNoCalendarioDispositivo}>
+              Salvar no calendário do seu dispositivo (inclui horários e deslocamentos)
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -534,9 +793,7 @@ export default function CalendarioPage() {
                       ) : transportInfo ? (
                         <div className="text-sm">
                           {transportInfo.origemEndereco ? (
-                            <p>
-                              <span className="font-medium">Origem{transportInfo.source === "passageiro" ? " (Passageiro)" : transportInfo.source === "acomodacao" ? " (Acomodação)" : ""}:</span> {transportInfo.origemEndereco}
-                            </p>
+                            <p><span className="font-medium">Origem:</span> {transportInfo.origemEndereco}</p>
                           ) : null}
                           {transportInfo.destinoEndereco ? (
                             <p><span className="font-medium">Destino:</span> {transportInfo.destinoEndereco}</p>
@@ -564,9 +821,6 @@ export default function CalendarioPage() {
                           {transportInfo.gmapsUrl ? (
                             <p><a href={transportInfo.gmapsUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Ver rota no Google Maps</a></p>
                           ) : null}
-                          <p className="mt-2 text-xs text-slate-500">
-                            Os valores de preço e tempo são estimativas de referência obtidas de fontes públicas na internet; podem variar e conter discrepâncias.
-                          </p>
                         </div>
                       ) : null}
                     </div>

@@ -209,18 +209,6 @@ export default function DetalheVooPage() {
             );
           })()}
         </div>
-        {/* Origem para deslocamento no dia da ida */}
-        <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3">
-          <p className="text-sm font-medium text-blue-900">Origem do deslocamento (Calendário)</p>
-          <p className="text-xs text-blue-800 mb-2">
-            No dia da <span className="font-semibold">ida</span>, o cálculo de transporte usa o <span className="font-semibold">Endereço do Passageiro</span> salvo em Revisão/Dados.
-          </p>
-          {trip.enderecoPartida ? (
-            <p className="text-xs text-blue-900"><span className="font-medium">Origem:</span> {trip.enderecoPartida}</p>
-          ) : (
-            <p className="text-xs text-amber-800">Informe seu endereço em “Dados do Passageiro” para usarmos como origem.</p>
-          )}
-        </div>
         <div className="mt-4">
           <Button onClick={() => setOpenDialog(true)}>Preencher dados do voo escolhido</Button>
         </div>

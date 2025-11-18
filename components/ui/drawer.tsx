@@ -24,7 +24,7 @@ export function DrawerContent({ className, children, side = "right", ...props }:
       <DialogPrimitive.Content
         data-side={side}
         className={cn(
-          "fixed z-50 top-0 h-full w-80 bg-white border-l border-slate-200 shadow-lg data-[side=left]:left-0 data-[side=right]:right-0 animate-drawer-in dark:bg-slate-900",
+          "fixed z-50 top-0 h-full w-[85vw] max-w-sm sm:w-80 bg-white border-l border-slate-200 shadow-lg data-[side=left]:left-0 data-[side=right]:right-0 animate-drawer-in dark:bg-slate-900",
           className
         )}
         {...props}

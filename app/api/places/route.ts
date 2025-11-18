@@ -113,7 +113,6 @@ export async function GET(req: Request) {
           "gelato",
         ]
       : [
-          // EN basics
           "tour",
           "museum",
           "attraction",
@@ -123,57 +122,6 @@ export async function GET(req: Request) {
           "cathedral",
           "park",
           "monument",
-          // EN extended
-          "things to do",
-          "city tour",
-          "day trip",
-          "boat tour",
-          "hop-on hop-off",
-          "viewpoint",
-          "observation deck",
-          "market",
-          "food tour",
-          "wine tasting",
-          "theatre",
-          "concert",
-          "live music",
-          "nightlife",
-          "zoo",
-          "aquarium",
-          "castle",
-          "palace",
-          "ruins",
-          "historic neighborhood",
-          "street art",
-          "bike tour",
-          // PT-BR equivalentes
-          "passeio",
-          "museu",
-          "atração",
-          "city tour",
-          "ponto turístico",
-          "galeria de arte",
-          "catedral",
-          "parque",
-          "monumento",
-          "mirante",
-          "observatório",
-          "mercado",
-          "feira",
-          "tour gastronômico",
-          "degustação de vinhos",
-          "teatro",
-          "concerto",
-          "música ao vivo",
-          "vida noturna",
-          "zoológico",
-          "aquário",
-          "castelo",
-          "palácio",
-          "ruínas",
-          "bairro histórico",
-          "arte de rua",
-          "tour de bicicleta",
         ];
 
   try {
@@ -191,12 +139,12 @@ export async function GET(req: Request) {
         seen.add(id);
         results.push(item);
       }
-      if (results.length >= 48) break;
+      if (results.length >= 24) break;
     }
 
-    const top = results.slice(0, 20);
+    const top = results.slice(0, 12);
     const detailed = await Promise.all(top.map(async (r) => {
-      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(r.place_id)}&fields=name,price_level,opening_hours,website,url,business_status,rating,user_ratings_total&language=pt-BR&key=${apiKey}`;
+      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(r.place_id)}&fields=name,price_level,opening_hours,website,url,business_status&language=pt-BR&key=${apiKey}`;
       try {
         const dResp = await fetch(detailsUrl, { cache: "no-store" });
         if (!dResp.ok) throw new Error("details failed");
@@ -209,7 +157,6 @@ export async function GET(req: Request) {
         const details: string[] = [];
         if (price) details.push(`Faixa de preço: ${price}`);
         if (schedule) details.push(`Horários: ${schedule}`);
-        if (d.rating) details.push(`Avaliação: ${d.rating}${d.user_ratings_total ? ` (${d.user_ratings_total})` : ""}`);
         if (d.business_status && d.business_status !== "OPERATIONAL") details.push(`Status: ${d.business_status}`);
         return { nome: name, detalhes: details.join(" — "), url };
       } catch {

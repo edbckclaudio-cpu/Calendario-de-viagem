@@ -5,7 +5,7 @@ import "react-day-picker/dist/style.css";
 
 export function Calendar({ value, onChange, disabled }: { value?: Date; onChange?: (d?: Date) => void; disabled?: any }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-2">
+    <div className="rounded-md border border-slate-200 bg-white p-2 max-w-full overflow-x-auto">
       <DayPicker
         mode="single"
         selected={value}

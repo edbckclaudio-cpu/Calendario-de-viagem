@@ -1,8 +1,9 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import Sidebar from "@/components/ui/sidebar";
+import MobileNav from "@/components/ui/mobile-nav";
+import BottomNav from "@/components/ui/bottom-nav";
 import Breadcrumbs from "@/components/ui/breadcrumbs";
-import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "TRAE - A Viagem",
@@ -14,16 +15,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-br">
       <body>
         <div className="app-shell">
-          <Sidebar />
+          {/* Sidebar só em telas médias ou maiores */}
+          <div className="hidden md:block">
+            <Sidebar />
+          </div>
           <div className="app-content">
             <header className="content-header">
+              <MobileNav />
               <h1 className="header-title">TRAE - Trip Resource and Expedition</h1>
-              <p className="subheader-title">TRAE - A Viagem</p>
-              <Breadcrumbs />
+              <p className="subheader-title hidden sm:block">TRAE - A Viagem</p>
+              <div className="hidden md:block">
+                <Breadcrumbs />
+              </div>
             </header>
-            <main className="content-main">
-              <Suspense fallback={<p>Carregando...</p>}>{children}</Suspense>
-            </main>
+            <main className="content-main">{children}</main>
+            {/* BottomNav apenas no mobile */}
+            <div className="md:hidden">
+              <BottomNav />
+            </div>
           </div>
         </div>
       </body>

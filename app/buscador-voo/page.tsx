@@ -50,14 +50,6 @@ export default function BuscadorVooPage() {
   const [voltaCodigo, setVoltaCodigo] = useState<string>("");
   const [voltaHorarioDet, setVoltaHorarioDet] = useState<string>("");
 
-  // controle de sequência: ida → volta → busca/links
-  const [idaConcluida, setIdaConcluida] = useState<boolean>(false);
-  const [voltaConcluida, setVoltaConcluida] = useState<boolean>(false);
-  const buscaHabilitada = idaConcluida && voltaConcluida;
-
-  // endereço de saída para cálculo de deslocamento até o aeroporto
-  const [enderecoPartida, setEnderecoPartida] = useState<string>("");
-
   useEffect(() => {
     async function fetchTrip() {
       const user = auth?.currentUser || { uid: "local-dev-user" };
@@ -67,10 +59,6 @@ export default function BuscadorVooPage() {
         setTrip(data);
         setIdaDate(data.dataInicio ? new Date(data.dataInicio) : undefined);
         setVoltaDate(data.dataFim ? new Date(data.dataFim) : undefined);
-        // inicializa estados de conclusão a partir do que já existe na viagem
-        setIdaConcluida(!!data.vooIda);
-        setVoltaConcluida(!!data.vooVolta);
-        setEnderecoPartida(data.enderecoPartida || "");
       }
     }
     fetchTrip();
@@ -281,7 +269,6 @@ export default function BuscadorVooPage() {
     await updateTrip(user.uid, tripId, { vooIda: voo });
     setOpenIda(false);
     showToast("Voo de ida salvo!", "success");
-    setIdaConcluida(true);
   }
 
   async function salvarVolta() {
@@ -298,7 +285,6 @@ export default function BuscadorVooPage() {
     await updateTrip(user.uid, tripId, { vooVolta: voo });
     setOpenVolta(false);
     showToast("Voo de volta salvo!", "success");
-    setVoltaConcluida(true);
   }
 
   async function aplicarPreferenciasBusca() {
@@ -340,18 +326,6 @@ export default function BuscadorVooPage() {
     router.push(`/detalhe-voo?tripId=${tripId}`);
   }
 
-  async function salvarEnderecoPartida() {
-    const user = auth?.currentUser || { uid: "local-dev-user" };
-    if (!tripId || !user) return;
-    const texto = (enderecoPartida || "").trim();
-    if (!texto || texto.length < 3) {
-      showToast("Informe um endereço válido (mínimo 3 caracteres).", "error");
-      return;
-    }
-    await updateTrip(user.uid, tripId, { enderecoPartida: texto });
-    showToast("Endereço salvo para cálculo de deslocamento.", "success");
-  }
-
   if (!trip) return <p>Carregando...</p>;
 
   return (
@@ -368,27 +342,6 @@ export default function BuscadorVooPage() {
           <div className="mt-2">
             <Button variant="outline" onClick={() => setOpenRegras(true)}>Regras para Crianças</Button>
           </div>
-        </div>
-        {/* Endereço do Passageiro (origem para transporte no Voo IDA) */}
-        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 mb-4">
-          <p className="text-sm font-medium text-blue-900">Endereço do Passageiro (origem)</p>
-          <p className="text-xs text-blue-800 mb-2">
-            Usado como <span className="font-semibold">origem</span> para calcular o deslocamento até o aeroporto no calendário do dia da ida.
-          </p>
-          <label className="text-sm text-slate-700">Endereço (rua, número, bairro, cidade)</label>
-          <Input
-            value={enderecoPartida}
-            onChange={(e) => setEnderecoPartida(e.target.value)}
-            placeholder="Ex.: Av. Paulista, 1000, Bela Vista, São Paulo"
-          />
-          <div className="mt-2 flex gap-2">
-            <Button variant="outline" onClick={salvarEnderecoPartida}>Salvar Endereço</Button>
-          </div>
-          {enderecoPartida ? (
-            <p className="mt-2 text-xs text-blue-900"><span className="font-medium">Origem utilizada no Calendário:</span> Endereço do Passageiro</p>
-          ) : (
-            <p className="mt-2 text-xs text-amber-800">Informe seu endereço para usarmos como origem no dia da ida.</p>
-          )}
         </div>
         <div className="mb-4 text-sm text-slate-700">
           Dica TRAE: Se for usar Airbnb ou hotel, o check-in normalmente é a partir das 14h. Para evitar longas esperas, prefira voos que chegam perto do meio-dia em diante.
@@ -458,7 +411,7 @@ export default function BuscadorVooPage() {
           </Drawer>
           <Drawer open={openVolta} onOpenChange={setOpenVolta}>
             <DrawerTrigger asChild>
-              <Button disabled={!idaConcluida}>Escolha o vôo da volta</Button>
+              <Button>Escolha o vôo da volta</Button>
             </DrawerTrigger>
             <DrawerContent>
               <div className="p-4 space-y-4">
@@ -545,22 +498,14 @@ export default function BuscadorVooPage() {
               </div>
             </DrawerContent>
           </Drawer>
-          <Button variant="secondary" onClick={aplicarPreferenciasBusca} disabled={!buscaHabilitada}>Fazer Busca</Button>
+          <Button variant="secondary" onClick={aplicarPreferenciasBusca}>Fazer Busca</Button>
         </div>
         <div className="mt-6">
           <h3 className="font-medium">Links de Busca</h3>
           <ul className="list-disc ml-6 text-sm">
             {linksBusca.map((l) => (
               <li key={l.nome}>
-                <a
-                  className={buscaHabilitada ? "text-blue-700 underline" : "text-slate-400 no-underline pointer-events-none cursor-not-allowed"}
-                  href={l.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-disabled={!buscaHabilitada}
-                  tabIndex={buscaHabilitada ? 0 : -1}
-                  onClick={(e) => { if (!buscaHabilitada) e.preventDefault(); }}
-                >
+                <a className="text-blue-700 underline" href={l.url} target="_blank" rel="noreferrer">
                   {l.nome}
                 </a>
               </li>

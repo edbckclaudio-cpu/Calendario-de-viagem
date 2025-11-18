@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type NavItem = { href: string; label: string };
 type NavSection = { title: string; items: NavItem[] };
@@ -38,17 +38,19 @@ const sections: NavSection[] = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false as any);
+  const [tripId, setTripId] = useState<string | null | undefined>(undefined);
 
   function isActive(href: string) {
     if (!pathname) return false;
     return pathname === href || (href !== "/" && pathname.startsWith(href));
   }
 
-  function getTripIdFromQuery(): string | null {
-    if (typeof window === "undefined") return null;
-    const params = new URLSearchParams(window.location.search);
-    return params.get("tripId");
-  }
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      setTripId(params.get("tripId"));
+    }
+  }, []);
 
   const requiresTripId: string[] = [
     "/calendario",
@@ -58,10 +60,10 @@ export default function Sidebar() {
     "/multiplas-cidades",
     "/detalhe-voo",
   ];
-  const tripId = getTripIdFromQuery();
-
   function isDisabled(href: string) {
-    return requiresTripId.includes(href) && !tripId;
+    if (!requiresTripId.includes(href)) return false;
+    if (tripId === undefined) return false; // evita mismatch de hidratação
+    return !tripId;
   }
 
   function Icon({ href }: { href: string }) {
