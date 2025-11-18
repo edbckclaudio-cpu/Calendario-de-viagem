@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Sidebar from "@/components/ui/sidebar";
 import Breadcrumbs from "@/components/ui/breadcrumbs";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "TRAE - A Viagem",
@@ -20,7 +21,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <p className="subheader-title">TRAE - A Viagem</p>
               <Breadcrumbs />
             </header>
-            <main className="content-main">{children}</main>
+            <main className="content-main">
+              <Suspense fallback={<p>Carregando...</p>}>{children}</Suspense>
+            </main>
           </div>
         </div>
       </body>
