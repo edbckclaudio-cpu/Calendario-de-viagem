@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { auth, loadTrip, updateTrip, indexTripForEmail } from "@/lib/firebase";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
-import { airportCoordsByIATA, cityCenterCoordsByName, parseCoordsFromAddress, haversineDistanceKm, estimateTransportOptions } from "@/lib/utils";
+import { airportCoordsByIATA, cityCenterCoordsByName, parseCoordsFromAddress, haversineDistanceKm, estimateTransportOptions, deriveTransportOrigin } from "@/lib/utils";
 
 type Evento = { data: string; hora?: string; tipo: string; local?: string; descricao?: string; url?: string; source?: { kind: "atividade"; idx: number } };
 
@@ -30,6 +30,7 @@ export default function CalendarioPage() {
     diaAnterior?: boolean;
     aviso?: string;
     gmapsUrl?: string;
+    source?: "passageiro" | "acomodacao";
   }>(null);
 
   useEffect(() => {
@@ -117,15 +118,16 @@ export default function CalendarioPage() {
         return (code && map[code]) || code || "";
       };
       const ap = airportCoordsByIATA(aeroportoOrigem || undefined);
-      // tenta obter endereço da cidade ativa no dia
+      // Define origem: em Voo IDA, use sempre o endereço dos Dados do Passageiro; em Voo VOLTA, use a acomodação da cidade ativa
       const c = getCityForDate(dStr);
-      const addressRaw = c ? ((c.endereco || c.hotelNome || "").trim()) : "";
+      const isIda = f.tipo === "Voo IDA";
+      const { address: addressRaw, source: addressSource } = deriveTransportOrigin(trip, c || undefined, isIda);
       // Se não houver endereço, tenta centro da cidade; caso não haja cidade, mostra aviso
       setTransportLoading(true);
       let addrCoords = parseCoordsFromAddress(addressRaw);
-      if (!addrCoords && addressRaw && c?.nome) {
+      if (!addrCoords && addressRaw) {
         try {
-          const q = `${addressRaw} ${c.nome}`;
+          const q = !isIda && c?.nome ? `${addressRaw} ${c.nome}` : addressRaw;
           const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
           if (res.ok) {
             const j = await res.json();
@@ -136,7 +138,7 @@ export default function CalendarioPage() {
       if (!addrCoords && c?.nome) addrCoords = cityCenterCoordsByName(c.nome) || null;
 
       // Monta link do Google Maps: origem = endereço, destino = aeroporto
-      const originParam = addrCoords ? `${addrCoords.lat},${addrCoords.lon}` : (addressRaw && c?.nome ? `${addressRaw} ${c.nome}` : "");
+      const originParam = addrCoords ? `${addrCoords.lat},${addrCoords.lon}` : (addressRaw ? (c?.nome ? `${addressRaw} ${c.nome}` : `${addressRaw}`) : "");
       const destParam = ap ? `${ap.lat},${ap.lon}` : (aeroportoOrigem || "");
       const destinoEndereco = airportLabel(aeroportoOrigem);
       const gmapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(originParam)}&destination=${encodeURIComponent(destParam)}&travelmode=driving`;
@@ -148,8 +150,15 @@ export default function CalendarioPage() {
           destinoEndereco,
           distanciaKm: null,
           tempoEstimadoMin: null,
-          aviso: addressRaw ? "Estimativa aproximada: faltam coordenadas precisas." : "Informe o endereço da acomodação para estimar deslocamento.",
+          aviso: addressRaw
+            ? "Estimativa aproximada: faltam coordenadas precisas."
+            : (isIda
+              ? "Informe seu endereço de partida em 'Dados do Passageiro' ou em 'Buscador de Vôo'."
+              : (c?.nome
+                ? "Informe o endereço da acomodação para estimar deslocamento."
+                : "Informe o endereço de partida em 'Dados do Passageiro'.")),
           gmapsUrl,
+          source: addressSource,
         });
         setTransportLoading(false);
         return;
@@ -190,6 +199,7 @@ export default function CalendarioPage() {
         modoUsado,
         diaAnterior,
         gmapsUrl,
+        source: addressSource,
       });
       setTransportLoading(false);
     }
@@ -524,7 +534,9 @@ export default function CalendarioPage() {
                       ) : transportInfo ? (
                         <div className="text-sm">
                           {transportInfo.origemEndereco ? (
-                            <p><span className="font-medium">Origem:</span> {transportInfo.origemEndereco}</p>
+                            <p>
+                              <span className="font-medium">Origem{transportInfo.source === "passageiro" ? " (Passageiro)" : transportInfo.source === "acomodacao" ? " (Acomodação)" : ""}:</span> {transportInfo.origemEndereco}
+                            </p>
                           ) : null}
                           {transportInfo.destinoEndereco ? (
                             <p><span className="font-medium">Destino:</span> {transportInfo.destinoEndereco}</p>
@@ -552,6 +564,9 @@ export default function CalendarioPage() {
                           {transportInfo.gmapsUrl ? (
                             <p><a href={transportInfo.gmapsUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Ver rota no Google Maps</a></p>
                           ) : null}
+                          <p className="mt-2 text-xs text-slate-500">
+                            Os valores de preço e tempo são estimativas de referência obtidas de fontes públicas na internet; podem variar e conter discrepâncias.
+                          </p>
                         </div>
                       ) : null}
                     </div>

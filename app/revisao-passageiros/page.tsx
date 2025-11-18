@@ -63,6 +63,14 @@ export default function RevisaoPassageirosPage() {
       <CardContent>
         <div className="grid gap-2">
           <p><span className="font-medium">Nome:</span> {trip.nomeCompleto}</p>
+          <div>
+            <p>
+              <span className="font-medium">Endereço do Passageiro:</span> {trip.enderecoPartida || ""}
+            </p>
+            <p className="text-xs text-slate-600 mt-1">
+              Origem usada para calcular o deslocamento no dia da <span className="font-semibold">ida</span> (Calendário).
+            </p>
+          </div>
           <p><span className="font-medium">Email:</span> {trip.email}</p>
           <p><span className="font-medium">Início:</span> {formatISODate(trip.dataInicio)}</p>
           <p><span className="font-medium">Fim:</span> {formatISODate(trip.dataFim)}</p>

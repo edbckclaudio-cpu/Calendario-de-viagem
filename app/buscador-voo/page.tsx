@@ -369,11 +369,11 @@ export default function BuscadorVooPage() {
             <Button variant="outline" onClick={() => setOpenRegras(true)}>Regras para Crianças</Button>
           </div>
         </div>
-        {/* Novo quadro: endereço para cálculo de deslocamento até o aeroporto no dia da ida */}
+        {/* Endereço do Passageiro (origem para transporte no Voo IDA) */}
         <div className="rounded-md border border-blue-200 bg-blue-50 p-3 mb-4">
-          <p className="text-sm font-medium text-blue-900">Endereço para cálculo de deslocamento</p>
+          <p className="text-sm font-medium text-blue-900">Endereço do Passageiro (origem)</p>
           <p className="text-xs text-blue-800 mb-2">
-            Este endereço será usado para estimar o tempo de deslocamento até o aeroporto no calendário no dia da ida.
+            Usado como <span className="font-semibold">origem</span> para calcular o deslocamento até o aeroporto no calendário do dia da ida.
           </p>
           <label className="text-sm text-slate-700">Endereço (rua, número, bairro, cidade)</label>
           <Input
@@ -384,6 +384,11 @@ export default function BuscadorVooPage() {
           <div className="mt-2 flex gap-2">
             <Button variant="outline" onClick={salvarEnderecoPartida}>Salvar Endereço</Button>
           </div>
+          {enderecoPartida ? (
+            <p className="mt-2 text-xs text-blue-900"><span className="font-medium">Origem utilizada no Calendário:</span> Endereço do Passageiro</p>
+          ) : (
+            <p className="mt-2 text-xs text-amber-800">Informe seu endereço para usarmos como origem no dia da ida.</p>
+          )}
         </div>
         <div className="mb-4 text-sm text-slate-700">
           Dica TRAE: Se for usar Airbnb ou hotel, o check-in normalmente é a partir das 14h. Para evitar longas esperas, prefira voos que chegam perto do meio-dia em diante.

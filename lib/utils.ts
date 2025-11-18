@@ -162,13 +162,20 @@ const IATA_COORDS: Record<string, { lat: number; lon: number }> = {
 };
 
 const CITY_COORDS: Record<string, { lat: number; lon: number }> = {
+  // Itália
   roma: { lat: 41.9028, lon: 12.4964 },
   rome: { lat: 41.9028, lon: 12.4964 },
+  // Brasil
   "rio de janeiro": { lat: -22.9068, lon: -43.1729 },
   "sao paulo": { lat: -23.5505, lon: -46.6333 },
+  "são paulo": { lat: -23.5505, lon: -46.6333 },
+  // França / Reino Unido
   paris: { lat: 48.8566, lon: 2.3522 },
   london: { lat: 51.5074, lon: -0.1278 },
+  londres: { lat: 51.5074, lon: -0.1278 },
+  // EUA
   "new york": { lat: 40.7128, lon: -74.006 },
+  "nova york": { lat: 40.7128, lon: -74.006 },
 };
 
 export function airportCoordsByIATA(iata?: string): { lat: number; lon: number } | null {
@@ -177,9 +184,22 @@ export function airportCoordsByIATA(iata?: string): { lat: number; lon: number }
   return IATA_COORDS[code] || null;
 }
 
+function normalizeCityName(name: string): string {
+  const lower = name.trim().toLowerCase();
+  // remove acentos
+  const noAccent = lower.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // sinônimos/aliases
+  if (noAccent.includes("nova york") || noAccent.includes("new york")) return "new york";
+  if (noAccent.includes("londres") || noAccent.includes("london")) return "london";
+  if (noAccent.includes("sao paulo") || noAccent.includes("são paulo")) return "sao paulo";
+  if (noAccent.includes("rio de janeiro")) return "rio de janeiro";
+  if (noAccent.includes("roma") || noAccent.includes("rome")) return "roma"; // usa "roma" como chave
+  return noAccent;
+}
+
 export function cityCenterCoordsByName(name?: string): { lat: number; lon: number } | null {
   if (!name) return null;
-  const key = name.toLowerCase();
+  const key = normalizeCityName(name);
   return CITY_COORDS[key] || null;
 }
 
@@ -210,45 +230,84 @@ export function estimateTransportOptions(distanceKm: number, cityName?: string):
   tempoEstimadoMin: number;
   observacao?: string;
 }> {
-  const city = (cityName || "").toLowerCase();
-  const isEurope = ["roma", "rome", "paris", "london"].includes(city);
-  const currency = isEurope ? "€" : "R$";
   const round = (x: number) => Math.round(x);
+  const normalizedCity = cityName ? normalizeCityName(cityName) : "";
+  // Mapeia moeda por cidade conhecida; padrão 'usd'
+  const currencyByCity: Record<string, "eur" | "gbp" | "usd" | "brl"> = {
+    roma: "eur",
+    paris: "eur",
+    london: "gbp",
+    "rio de janeiro": "brl",
+    "sao paulo": "brl",
+    "new york": "usd",
+  };
+  const currency = currencyByCity[normalizedCity] || "usd";
 
-  // Suposições simples de custo por km e velocidades médias.
-  const taxiBase = isEurope ? 5 : 6;
-  const taxiPerKm = isEurope ? 1.2 : 2.5;
-  const ridePerKm = isEurope ? 1.0 : 2.0;
-  const shuttlePerKm = isEurope ? 0.4 : 1.2;
-  const transitTicket = isEurope ? 2.0 : 6.0; // bilhete/integração
+  // Suposições simples de custo por km e velocidades médias por região
+  let taxiBase: number, taxiPerKm: number, ridePerKm: number, shuttlePerKm: number, transitTicket: number;
+  if (currency === "eur" || currency === "gbp") {
+    taxiBase = 5; taxiPerKm = 1.2; ridePerKm = 1.0; shuttlePerKm = 0.4; transitTicket = 2.5;
+  } else if (currency === "usd") {
+    taxiBase = 6; taxiPerKm = 1.5; ridePerKm = 1.2; shuttlePerKm = 0.5; transitTicket = 3.0;
+  } else { // brl
+    taxiBase = 6; taxiPerKm = 2.5; ridePerKm = 2.0; shuttlePerKm = 1.2; transitTicket = 6.0;
+  }
 
   const taxiMinutes = round((distanceKm / 40) * 60 + 10);
   const rideMinutes = round((distanceKm / 38) * 60 + 8);
   const shuttleMinutes = round((distanceKm / 30) * 60 + 15);
   const transitMinutes = round((distanceKm / 25) * 60 + 20);
 
+  const suf = currency; // ex.: 'usd', 'eur', 'gbp', 'brl'
   return [
     {
       modo: "Táxi",
-      precoEstimado: `${currency}${round(taxiBase + taxiPerKm * distanceKm)}`,
+      precoEstimado: `${round(taxiBase + taxiPerKm * distanceKm)}${suf}`,
       tempoEstimadoMin: taxiMinutes,
       observacao: "Preço variável por tarifa, tráfego e horário.",
     },
     {
       modo: "App (ride-share)",
-      precoEstimado: `${currency}${round(ridePerKm * distanceKm)}`,
+      precoEstimado: `${round(ridePerKm * distanceKm)}${suf}`,
       tempoEstimadoMin: rideMinutes,
     },
     {
       modo: "Translado/Shuttle",
-      precoEstimado: `${currency}${round(shuttlePerKm * distanceKm)}`,
+      precoEstimado: `${round(shuttlePerKm * distanceKm)}${suf}`,
       tempoEstimadoMin: shuttleMinutes,
     },
     {
       modo: "Transporte público",
-      precoEstimado: `${currency}${round(transitTicket)}`,
+      precoEstimado: `${round(transitTicket)}${suf}`,
       tempoEstimadoMin: transitMinutes,
       observacao: "Necessita conexão; tempo inclui caminhada/espera.",
     },
   ];
+}
+
+// Deriva a origem para cálculo de transporte (endereço e fonte)
+// Convenção:
+// - Em dia de Voo IDA: sempre usar o endereço salvo em Dados do Passageiro
+// - Em dia de Voo VOLTA: priorizar endereço/nome da acomodação da cidade ativa; se ausente, cair para endereço do passageiro
+export function deriveTransportOrigin(
+  trip: any,
+  city?: { endereco?: string; hotelNome?: string; nome?: string },
+  isIda: boolean = false
+): { address: string; source: "passageiro" | "acomodacao" | undefined } {
+  let address = "";
+  let source: "passageiro" | "acomodacao" | undefined = undefined;
+  if (isIda) {
+    address = (trip?.enderecoPartida || "").trim();
+    source = address ? "passageiro" : undefined;
+  } else {
+    const acom = city ? ((city.endereco || city.hotelNome || "").trim()) : "";
+    if (acom) {
+      address = acom;
+      source = "acomodacao";
+    } else {
+      address = (trip?.enderecoPartida || "").trim();
+      source = address ? "passageiro" : undefined;
+    }
+  }
+  return { address, source };
 }
