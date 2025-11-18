@@ -64,6 +64,7 @@ export default function RevisaoPassageirosPage() {
       <CardContent>
         <div className="grid gap-2">
           <p><span className="font-medium">Nome:</span> {trip.nomeCompleto}</p>
+          <p><span className="font-medium">Endereço:</span> {trip.enderecoOrigem || "(não informado)"}</p>
           <p><span className="font-medium">Email:</span> {trip.email}</p>
           <p><span className="font-medium">Início:</span> {formatISODate(trip.dataInicio)}</p>
           <p><span className="font-medium">Fim:</span> {formatISODate(trip.dataFim)}</p>

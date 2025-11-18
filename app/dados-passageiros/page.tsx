@@ -17,6 +17,7 @@ export default function DadosPassageirosPage() {
   const existingTripId = params.get("tripId") || undefined;
 
   const [nomeCompleto, setNomeCompleto] = useState("");
+  const [enderecoOrigem, setEnderecoOrigem] = useState("");
   const [email, setEmail] = useState("");
   const [dataInicio, setDataInicio] = useState<Date | undefined>();
   const [dataFim, setDataFim] = useState<Date | undefined>();
@@ -122,6 +123,7 @@ export default function DadosPassageirosPage() {
         userId: user.uid,
         email,
         nomeCompleto,
+        enderecoOrigem,
         dataInicio: dataInicio.toISOString(),
         dataFim: dataFim.toISOString(),
         passageiros: passageiros.map((p) => ({
@@ -156,6 +158,17 @@ export default function DadosPassageirosPage() {
           <div className="grid gap-2">
             <label className="text-sm text-slate-700">Nome Completo</label>
             <Input value={nomeCompleto} onChange={(e) => setNomeCompleto(e.target.value)} placeholder="Nome completo do passageiro principal" />
+          </div>
+          <div className="grid gap-1">
+            <label className="text-sm text-slate-700">Endereço</label>
+            <Input
+              value={enderecoOrigem}
+              onChange={(e) => setEnderecoOrigem(e.target.value)}
+              placeholder="Ex: Rua Exemplo, 123 — Bairro, Cidade"
+            />
+            <p className="text-xs text-slate-600">
+              Usaremos este endereço para estimar o tempo até o aeroporto e sugerir o horário ideal de saída no calendário.
+            </p>
           </div>
           <div className="grid gap-2">
             <label className="text-sm text-slate-700">Email</label>

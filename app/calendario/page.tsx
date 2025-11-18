@@ -120,7 +120,11 @@ export default function CalendarioPage() {
       const ap = airportCoordsByIATA(aeroportoOrigem || undefined);
       // tenta obter endereço da cidade ativa no dia
       const c = getCityForDate(dStr);
-      const addressRaw = c ? ((c.endereco || c.hotelNome || "").trim()) : "";
+      const addressRaw = (() => {
+        const cityAddr = c ? ((c.endereco || c.hotelNome || "").trim()) : "";
+        const tripAddr = (trip?.enderecoOrigem || "").trim();
+        return cityAddr || tripAddr;
+      })();
       // Se não houver endereço, tenta centro da cidade; caso não haja cidade, mostra aviso
       setTransportLoading(true);
       let addrCoords = parseCoordsFromAddress(addressRaw);
@@ -149,7 +153,7 @@ export default function CalendarioPage() {
           destinoEndereco,
           distanciaKm: null,
           tempoEstimadoMin: null,
-          aviso: addressRaw ? "Estimativa aproximada: faltam coordenadas precisas." : "Informe o endereço da acomodação para estimar deslocamento.",
+          aviso: addressRaw ? "Estimativa aproximada: faltam coordenadas precisas." : "Informe o endereço de origem (Dados dos Passageiros) ou da acomodação para estimar deslocamento.",
           gmapsUrl,
         });
         setTransportLoading(false);
@@ -351,7 +355,11 @@ export default function CalendarioPage() {
   function computeTransportFromAccommodationToAirport(dateStr?: string, airportCode?: string, flightHora?: string) {
     const c = getCityForDate(dateStr);
     const ap = airportCoordsByIATA(airportCode || undefined);
-    const addressRaw = c ? ((c.endereco || c.hotelNome || "").trim()) : "";
+    const addressRaw = (() => {
+      const cityAddr = c ? ((c.endereco || c.hotelNome || "").trim()) : "";
+      const tripAddr = (trip?.enderecoOrigem || "").trim();
+      return cityAddr || tripAddr;
+    })();
     let addrCoords = parseCoordsFromAddress(addressRaw);
     if (!addrCoords && c?.nome) addrCoords = cityCenterCoordsByName(c.nome) || null;
     const distKm = addrCoords && ap ? haversineDistanceKm(ap, addrCoords) : null;
@@ -392,7 +400,11 @@ export default function CalendarioPage() {
   function computeTransportFromAirportToAccommodation(dateStr?: string, airportCode?: string) {
     const c = getCityForDate(dateStr);
     const ap = airportCoordsByIATA(airportCode || undefined);
-    const addressRaw = c ? ((c.endereco || c.hotelNome || "").trim()) : "";
+    const addressRaw = (() => {
+      const cityAddr = c ? ((c.endereco || c.hotelNome || "").trim()) : "";
+      const tripAddr = (trip?.enderecoOrigem || "").trim();
+      return cityAddr || tripAddr;
+    })();
     let addrCoords = parseCoordsFromAddress(addressRaw);
     if (!addrCoords && c?.nome) addrCoords = cityCenterCoordsByName(c.nome) || null;
     const distKm = addrCoords && ap ? haversineDistanceKm(ap, addrCoords) : null;
