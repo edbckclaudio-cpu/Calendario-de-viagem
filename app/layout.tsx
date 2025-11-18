@@ -4,6 +4,7 @@ import Sidebar from "@/components/ui/sidebar";
 import MobileNav from "@/components/ui/mobile-nav";
 import BottomNav from "@/components/ui/bottom-nav";
 import Breadcrumbs from "@/components/ui/breadcrumbs";
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "TRAE - A Viagem",
