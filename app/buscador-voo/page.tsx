@@ -55,6 +55,9 @@ export default function BuscadorVooPage() {
   const [voltaConcluida, setVoltaConcluida] = useState<boolean>(false);
   const buscaHabilitada = idaConcluida && voltaConcluida;
 
+  // endereço de saída para cálculo de deslocamento até o aeroporto
+  const [enderecoPartida, setEnderecoPartida] = useState<string>("");
+
   useEffect(() => {
     async function fetchTrip() {
       const user = auth?.currentUser || { uid: "local-dev-user" };
@@ -67,6 +70,7 @@ export default function BuscadorVooPage() {
         // inicializa estados de conclusão a partir do que já existe na viagem
         setIdaConcluida(!!data.vooIda);
         setVoltaConcluida(!!data.vooVolta);
+        setEnderecoPartida(data.enderecoPartida || "");
       }
     }
     fetchTrip();
@@ -336,6 +340,18 @@ export default function BuscadorVooPage() {
     router.push(`/detalhe-voo?tripId=${tripId}`);
   }
 
+  async function salvarEnderecoPartida() {
+    const user = auth?.currentUser || { uid: "local-dev-user" };
+    if (!tripId || !user) return;
+    const texto = (enderecoPartida || "").trim();
+    if (!texto || texto.length < 3) {
+      showToast("Informe um endereço válido (mínimo 3 caracteres).", "error");
+      return;
+    }
+    await updateTrip(user.uid, tripId, { enderecoPartida: texto });
+    showToast("Endereço salvo para cálculo de deslocamento.", "success");
+  }
+
   if (!trip) return <p>Carregando...</p>;
 
   return (
@@ -351,6 +367,22 @@ export default function BuscadorVooPage() {
           <p className="text-sm">Passageiros: {trip.passageiros?.length || 0}</p>
           <div className="mt-2">
             <Button variant="outline" onClick={() => setOpenRegras(true)}>Regras para Crianças</Button>
+          </div>
+        </div>
+        {/* Novo quadro: endereço para cálculo de deslocamento até o aeroporto no dia da ida */}
+        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 mb-4">
+          <p className="text-sm font-medium text-blue-900">Endereço para cálculo de deslocamento</p>
+          <p className="text-xs text-blue-800 mb-2">
+            Este endereço será usado para estimar o tempo de deslocamento até o aeroporto no calendário no dia da ida.
+          </p>
+          <label className="text-sm text-slate-700">Endereço (rua, número, bairro, cidade)</label>
+          <Input
+            value={enderecoPartida}
+            onChange={(e) => setEnderecoPartida(e.target.value)}
+            placeholder="Ex.: Av. Paulista, 1000, Bela Vista, São Paulo"
+          />
+          <div className="mt-2 flex gap-2">
+            <Button variant="outline" onClick={salvarEnderecoPartida}>Salvar Endereço</Button>
           </div>
         </div>
         <div className="mb-4 text-sm text-slate-700">
