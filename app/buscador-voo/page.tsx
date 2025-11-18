@@ -50,6 +50,11 @@ export default function BuscadorVooPage() {
   const [voltaCodigo, setVoltaCodigo] = useState<string>("");
   const [voltaHorarioDet, setVoltaHorarioDet] = useState<string>("");
 
+  // controle de sequência: ida → volta → busca/links
+  const [idaConcluida, setIdaConcluida] = useState<boolean>(false);
+  const [voltaConcluida, setVoltaConcluida] = useState<boolean>(false);
+  const buscaHabilitada = idaConcluida && voltaConcluida;
+
   useEffect(() => {
     async function fetchTrip() {
       const user = auth?.currentUser || { uid: "local-dev-user" };
@@ -59,6 +64,9 @@ export default function BuscadorVooPage() {
         setTrip(data);
         setIdaDate(data.dataInicio ? new Date(data.dataInicio) : undefined);
         setVoltaDate(data.dataFim ? new Date(data.dataFim) : undefined);
+        // inicializa estados de conclusão a partir do que já existe na viagem
+        setIdaConcluida(!!data.vooIda);
+        setVoltaConcluida(!!data.vooVolta);
       }
     }
     fetchTrip();
@@ -269,6 +277,7 @@ export default function BuscadorVooPage() {
     await updateTrip(user.uid, tripId, { vooIda: voo });
     setOpenIda(false);
     showToast("Voo de ida salvo!", "success");
+    setIdaConcluida(true);
   }
 
   async function salvarVolta() {
@@ -285,6 +294,7 @@ export default function BuscadorVooPage() {
     await updateTrip(user.uid, tripId, { vooVolta: voo });
     setOpenVolta(false);
     showToast("Voo de volta salvo!", "success");
+    setVoltaConcluida(true);
   }
 
   async function aplicarPreferenciasBusca() {
@@ -411,7 +421,7 @@ export default function BuscadorVooPage() {
           </Drawer>
           <Drawer open={openVolta} onOpenChange={setOpenVolta}>
             <DrawerTrigger asChild>
-              <Button>Escolha o vôo da volta</Button>
+              <Button disabled={!idaConcluida}>Escolha o vôo da volta</Button>
             </DrawerTrigger>
             <DrawerContent>
               <div className="p-4 space-y-4">
@@ -498,14 +508,22 @@ export default function BuscadorVooPage() {
               </div>
             </DrawerContent>
           </Drawer>
-          <Button variant="secondary" onClick={aplicarPreferenciasBusca}>Fazer Busca</Button>
+          <Button variant="secondary" onClick={aplicarPreferenciasBusca} disabled={!buscaHabilitada}>Fazer Busca</Button>
         </div>
         <div className="mt-6">
           <h3 className="font-medium">Links de Busca</h3>
           <ul className="list-disc ml-6 text-sm">
             {linksBusca.map((l) => (
               <li key={l.nome}>
-                <a className="text-blue-700 underline" href={l.url} target="_blank" rel="noreferrer">
+                <a
+                  className={buscaHabilitada ? "text-blue-700 underline" : "text-slate-400 no-underline pointer-events-none cursor-not-allowed"}
+                  href={l.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-disabled={!buscaHabilitada}
+                  tabIndex={buscaHabilitada ? 0 : -1}
+                  onClick={(e) => { if (!buscaHabilitada) e.preventDefault(); }}
+                >
                   {l.nome}
                 </a>
               </li>
