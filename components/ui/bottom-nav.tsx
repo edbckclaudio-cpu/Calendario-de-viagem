@@ -1,7 +1,10 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getCurrentUser, clearAuth } from "@/lib/auth-local";
+import { Button } from "@/components/ui/button";
+import Toast from "@/components/ui/toast";
 
 type NavItem = { href: string; label: string };
 const items: NavItem[] = [
@@ -26,8 +29,11 @@ function Icon({ href }: { href: string }) {
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const [tripId, setTripId] = useState<string | null>(null);
   const [visited, setVisited] = useState<string[]>([]);
+  const [email, setEmail] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -37,6 +43,8 @@ export default function BottomNav() {
         const raw = sessionStorage.getItem("visitedPaths");
         setVisited(raw ? JSON.parse(raw) : []);
       } catch {}
+      const u = getCurrentUser();
+      setEmail(u?.email || null);
     }
   }, [pathname]);
 
@@ -46,6 +54,20 @@ export default function BottomNav() {
       sessionStorage.setItem("visitedPaths", JSON.stringify(next));
       setVisited(next);
     } catch {}
+  }
+
+  function handleLogout() {
+    if (typeof window !== "undefined") {
+      const ok = window.confirm("Deseja sair?");
+      if (!ok) return;
+    }
+    clearAuth();
+    setEmail(null);
+    setShowToast(true);
+    setTimeout(() => {
+      router.push("/");
+      setShowToast(false);
+    }, 650);
   }
 
   return (
@@ -68,6 +90,21 @@ export default function BottomNav() {
           </Link>
         );
       })}
+      {email && (
+        <Button
+          className="bottom-nav-link"
+          variant="secondary"
+          size="sm"
+          onClick={handleLogout}
+          title="Sair"
+        >
+          <span className="w-5 h-5">🚪</span>
+          <span className="text-[11px]">Sair</span>
+        </Button>
+      )}
+      {showToast && (
+        <Toast message="Você saiu" type="success" position="top-right" onClose={() => setShowToast(false)} />
+      )}
     </div>
   );
 }

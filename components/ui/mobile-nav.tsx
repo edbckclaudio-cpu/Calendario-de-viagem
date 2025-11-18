@@ -3,6 +3,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Drawer, DrawerTrigger, DrawerContent } from "./drawer";
+import { getCurrentUser, clearAuth } from "@/lib/auth-local";
+import { Button } from "@/components/ui/button";
+import Toast from "@/components/ui/toast";
 
 type NavItem = { href: string; label: string };
 type NavSection = { title: string; items: NavItem[] };
@@ -62,12 +65,16 @@ export default function MobileNav() {
   const router = useRouter();
   const [tripId, setTripId] = useState<string | null>(null);
   const [tripIdInput, setTripIdInput] = useState<string>("");
+  const [email, setEmail] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       setTripId(params.get("tripId"));
       setTripIdInput(params.get("tripId") ?? "");
+      const u = getCurrentUser();
+      setEmail(u?.email || null);
     }
   }, []);
 
@@ -78,6 +85,20 @@ export default function MobileNav() {
     else params.delete("tripId");
     router.replace(`${pathname}?${params.toString()}`);
     setTripId(tripIdInput || null);
+  }
+
+  function handleLogout() {
+    if (typeof window !== "undefined") {
+      const ok = window.confirm("Deseja sair?");
+      if (!ok) return;
+    }
+    clearAuth();
+    setEmail(null);
+    setShowToast(true);
+    setTimeout(() => {
+      router.push("/");
+      setShowToast(false);
+    }, 650);
   }
 
   return (
@@ -95,6 +116,12 @@ export default function MobileNav() {
               </p>
             )}
           </div>
+          {email && (
+            <div className="mb-4 flex items-center gap-2">
+              <span className="text-xs text-slate-600">{email}</span>
+              <Button variant="secondary" size="sm" onClick={handleLogout}>Sair</Button>
+            </div>
+          )}
           <div className="mb-4 flex items-center gap-2">
             <input
               value={tripIdInput}
@@ -135,6 +162,9 @@ export default function MobileNav() {
           </div>
         </DrawerContent>
       </Drawer>
+      {showToast && (
+        <Toast message="Você saiu" type="success" position="top-right" onClose={() => setShowToast(false)} />
+      )}
     </div>
   );
 }

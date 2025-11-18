@@ -1,7 +1,10 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getCurrentUser, clearAuth } from "@/lib/auth-local";
+import { Button } from "@/components/ui/button";
+import Toast from "@/components/ui/toast";
 
 type NavItem = { href: string; label: string };
 type NavSection = { title: string; items: NavItem[] };
@@ -37,8 +40,11 @@ const sections: NavSection[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false as any);
   const [tripId, setTripId] = useState<string | null | undefined>(undefined);
+  const [email, setEmail] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
 
   function isActive(href: string) {
     if (!pathname) return false;
@@ -49,8 +55,24 @@ export default function Sidebar() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       setTripId(params.get("tripId"));
+      const u = getCurrentUser();
+      setEmail(u?.email || null);
     }
   }, []);
+
+  function handleLogout() {
+    if (typeof window !== "undefined") {
+      const ok = window.confirm("Deseja sair?");
+      if (!ok) return;
+    }
+    clearAuth();
+    setEmail(null);
+    setShowToast(true);
+    setTimeout(() => {
+      router.push("/");
+      setShowToast(false);
+    }, 650);
+  }
 
   const requiresTripId: string[] = [
     "/calendario",
@@ -130,8 +152,25 @@ export default function Sidebar() {
       ))}
 
       <div className="sidebar-footer">
-        {!collapsed && <p className="text-xs text-slate-500">© {new Date().getFullYear()} TRAE</p>}
+        {!collapsed && (
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-slate-500">© {new Date().getFullYear()} TRAE</p>
+            {email && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleLogout}
+                title="Sair"
+              >
+                Sair
+              </Button>
+            )}
+          </div>
+        )}
       </div>
+      {showToast && (
+        <Toast message="Você saiu" type="success" position="top-right" onClose={() => setShowToast(false)} />
+      )}
     </aside>
   );
 }

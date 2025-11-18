@@ -4,6 +4,7 @@ import Sidebar from "@/components/ui/sidebar";
 import MobileNav from "@/components/ui/mobile-nav";
 import BottomNav from "@/components/ui/bottom-nav";
 import Breadcrumbs from "@/components/ui/breadcrumbs";
+import UserAuthControls from "@/components/ui/user-auth-controls";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="hidden md:block">
                 <Breadcrumbs />
               </div>
+              <UserAuthControls />
             </header>
             <main className="content-main">{children}</main>
             {/* BottomNav apenas no mobile */}
