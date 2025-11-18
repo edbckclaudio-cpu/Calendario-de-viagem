@@ -44,7 +44,13 @@ export default function HomePage() {
       setIsAdmin(res.role === "admin");
       setLoginOpen(false);
       setSuccessOpen(true);
-      setTimeout(() => router.push("/dados-passageiros"), 800);
+      setTimeout(() => {
+        if (typeof window !== "undefined") {
+          window.location.assign("/dados-passageiros");
+        } else {
+          router.push("/dados-passageiros");
+        }
+      }, 800);
     } finally {
       setLoading(false);
     }

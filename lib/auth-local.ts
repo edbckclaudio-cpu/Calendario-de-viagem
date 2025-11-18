@@ -49,12 +49,15 @@ function seedAdmin() {
 }
 
 function setAuth(email: string) {
-  document.cookie = `traeAuth=${encodeURIComponent(email)}; path=/; max-age=${60 * 60 * 24 * 7}`;
+  const base = `traeAuth=${encodeURIComponent(email)}; Path=/; Max-Age=${60 * 60 * 24 * 7}`;
+  const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
+  const attrs = isHttps ? `${base}; SameSite=Lax; Secure` : base;
+  document.cookie = attrs;
   localStorage.setItem("trae_email", email);
 }
 
 function clearAuth() {
-  document.cookie = "traeAuth=; path=/; max-age=0";
+  document.cookie = "traeAuth=; Path=/; Max-Age=0";
   localStorage.removeItem("trae_email");
 }
 
