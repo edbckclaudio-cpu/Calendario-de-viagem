@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 215 20.2% 65.1%;
+
+  --primary: 222.2 47.4% 11.2%;
+  --primary-foreground: 210 40% 98%;
+
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+
+  --radius: 0.5rem;
+}
+
+* {
+  @apply border-border;
+}
+
+body {
+  @apply bg-gradient-to-br from-sky-50 via-sky-100 to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-foreground min-h-screen;
+}
+
+/* App shell layout */
+.app-shell {
+  @apply min-h-screen flex bg-transparent;
+}
+
+.sidebar-wrapper {
+  @apply w-64 shrink-0 bg-white/70 dark:bg-slate-900/60 backdrop-blur border-r border-slate-200 dark:border-slate-800 px-4 py-6 flex flex-col gap-4;
+}
+.sidebar-collapsed { @apply w-16 px-2; }
+.sidebar-toggle { @apply mr-2 text-slate-700 dark:text-slate-200 hover:text-blue-700 dark:hover:text-sky-300; }
+
+.sidebar-brand {
+  @apply flex items-center gap-3 px-1;
+}
+.brand-icon {
+  @apply w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-sky-500 text-white flex items-center justify-center font-semibold shadow;
+}
+.brand-title {
+  @apply text-lg font-semibold text-blue-900 dark:text-sky-200 leading-tight;
+}
+.brand-sub {
+  @apply text-xs text-slate-600 dark:text-slate-400;
+}
+
+.sidebar-section { @apply mt-2; }
+.sidebar-section-title { @apply text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 px-1 mb-1; }
+.sidebar-nav { @apply flex flex-col gap-1; }
+.sidebar-link {
+  @apply flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition;
+}
+.sidebar-link-active { @apply bg-blue-100 text-blue-800 dark:bg-slate-800 dark:text-sky-300 font-medium; }
+.sidebar-link-disabled { @apply opacity-50 cursor-not-allowed; }
+.sidebar-bullet { @apply w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600; }
+.sidebar-footer { @apply mt-auto px-1; }
+
+.app-content { @apply flex-1 flex flex-col relative; }
+.app-content::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url('https://images.pexels.com/photos/457882/pexels-photo-457882.jpeg?auto=compress&cs=tinysrgb&h=1080&w=1920');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.12; /* bem translúcida para não poluir */
+  pointer-events: none;
+  z-index: 0;
+  filter: saturate(80%) contrast(95%);
+}
+.content-header { @apply px-6 py-6 border-b border-slate-200 dark:border-slate-800 relative; }
+.content-main { @apply px-6 py-8 relative; }
+
+/* Breadcrumbs */
+.breadcrumbs { @apply mt-2 text-xs text-slate-600 dark:text-slate-300 flex items-center flex-wrap; }
+.breadcrumbs-item { @apply flex items-center; }
+.breadcrumbs-sep { @apply mx-1 text-slate-400; }
+.breadcrumbs-link { @apply hover:text-blue-700 dark:hover:text-sky-300; }
+.breadcrumbs-current { @apply font-medium; }
+
+.header-title {
+  @apply text-2xl sm:text-3xl font-bold tracking-tight text-blue-900 dark:text-sky-200;
+}
+
+.subheader-title {
+  @apply text-sm text-slate-600 dark:text-slate-300;
+}
