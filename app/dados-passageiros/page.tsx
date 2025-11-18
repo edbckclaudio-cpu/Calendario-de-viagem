@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
@@ -21,6 +22,8 @@ export default function DadosPassageirosPage() {
   const [qtdPassageiros, setQtdPassageiros] = useState(1);
   const [passageiros, setPassageiros] = useState<Passageiro[]>([{ nome: "" }]);
   const [saving, setSaving] = useState(false);
+  const [savedOpen, setSavedOpen] = useState(false);
+  const [savedTrips, setSavedTrips] = useState<Array<{ tripId: string; cidade?: string }>>([]);
 
   useEffect(() => {
     const storedEmail = typeof window !== "undefined" ? localStorage.getItem("trae_email") : null;
@@ -66,6 +69,38 @@ export default function DadosPassageirosPage() {
       setDataFim(undefined);
     }
   }, [dataInicio, dataFim]);
+
+  async function carregarViagensSalvas() {
+    try {
+      const e = email || (typeof window !== "undefined" ? localStorage.getItem("trae_email") || "" : "");
+      if (!e) {
+        alert("Informe seu e-mail na página Inicial para recuperar viagens.");
+        router.push("/");
+        return;
+      }
+      const byEmail = await (await import("@/lib/firebase")).listTripsByEmail(e);
+      let items = [...byEmail];
+      if (!items.length) {
+        const user = auth?.currentUser || { uid: "local-dev-user" };
+        const { listTrips } = await import("@/lib/firebase");
+        const all = await listTrips(user.uid);
+        const enriched = await Promise.all(all.map(async (t: any) => {
+          let cidade = t.data?.cidadesAcomodacao?.[0]?.nome
+            || t.data?.acomodacaoBusiness?.cidade
+            || t.data?.buscaVoo?.ida?.destino
+            || t.data?.buscaVoo?.destino
+            || "Viagem";
+          return { tripId: t.id, cidade };
+        }));
+        items = enriched;
+      }
+      setSavedTrips(items);
+      setSavedOpen(true);
+    } catch (err) {
+      console.error("Falha ao carregar viagens salvas", err);
+      alert("Não foi possível carregar viagens salvas.");
+    }
+  }
 
   async function handleSeguir() {
     if (!dataInicio || !dataFim) {
@@ -165,11 +200,39 @@ export default function DadosPassageirosPage() {
         </div>
       </CardContent>
       <CardFooter>
-        <div className="flex justify-end w-full gap-3">
-          <Button variant="secondary" onClick={() => router.push("/")}>Voltar</Button>
+        <div className="flex justify-between w-full gap-3">
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => router.push("/")}>Voltar</Button>
+            <Button variant="secondary" onClick={carregarViagensSalvas}>Recuperar viagem salva</Button>
+          </div>
           <Button onClick={handleSeguir} disabled={saving}>{saving ? "Salvando..." : "Seguir"}</Button>
         </div>
       </CardFooter>
+      <Dialog open={savedOpen} onOpenChange={setSavedOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Viagens salvas</DialogTitle>
+            <DialogDescription>Selecione uma viagem para abrir o calendário.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            {savedTrips.length === 0 ? (
+              <p className="text-sm text-slate-600">Nenhuma viagem encontrada para este e-mail.</p>
+            ) : (
+              savedTrips.map((v) => (
+                <div key={v.tripId} className="flex items-center justify-between rounded-md border border-slate-200 p-2 text-sm">
+                  <span>{v.cidade || "Viagem"}</span>
+                  <Button onClick={() => router.push(`/calendario?tripId=${v.tripId}`)} size="sm">Abrir calendário</Button>
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="secondary">Fechar</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
