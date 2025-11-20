@@ -17,6 +17,7 @@ export default function DetalheVooPage() {
   const tripId = params.get("tripId");
   const [trip, setTrip] = useState<any | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [toast, setToast] = useState<null | { message: string; type: "success" | "error" | "info" }>(null);
 
   // hour/minute selectors
@@ -31,6 +32,10 @@ export default function DetalheVooPage() {
   const [voltaFaixa, setVoltaFaixa] = useState<string>(trip?.vooVolta?.horarioFaixa || "");
   const [idaInfo, setIdaInfo] = useState<any | null>(null);
   const [voltaInfo, setVoltaInfo] = useState<any | null>(null);
+  const [idaCodeError, setIdaCodeError] = useState<string | null>(null);
+  const [voltaCodeError, setVoltaCodeError] = useState<string | null>(null);
+  const [idaTimeError, setIdaTimeError] = useState<string | null>(null);
+  const [voltaTimeError, setVoltaTimeError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetch() {
@@ -108,6 +113,22 @@ export default function DetalheVooPage() {
       });
   }
 
+  function normalizeFlightCode(raw: string): string {
+    const s = String(raw || "").toUpperCase().replace(/\s|-/g, "");
+    return s;
+  }
+  function isValidFlightCode(code: string): boolean {
+    return /^[A-Z]{2,3}\d{1,4}$/.test(code);
+  }
+  function isValidHour(h?: string): boolean {
+    return !!h && /^\d{2}$/.test(h) && Number(h) >= 0 && Number(h) <= 24;
+  }
+  function isValidMinute(m?: string, h?: string): boolean {
+    if (!m || !/^\d{2}$/.test(m)) return false;
+    if (h === "24") return m === "00";
+    return ["00","05","10","15","20","25","30","35","40","45","50","55"].includes(m);
+  }
+
   // Garante minutos "00" quando a hora for 24
   useEffect(() => {
     if (idaHora === "24" && idaMin !== "00") setIdaMin("00");
@@ -121,11 +142,21 @@ export default function DetalheVooPage() {
     if (!user || !tripId || !trip) return;
     const idaHorarioDetalhado = `${idaHora}:${idaMin}`;
     const voltaHorarioDetalhado = `${voltaHora}:${voltaMin}`;
-    const novoVooIda = { ...(trip.vooIda || {}), horarioDetalhado: idaHorarioDetalhado, codigoVoo: idaCodigo } as any;
+    setIdaTimeError(null);
+    setVoltaTimeError(null);
+    if (!isValidHour(idaHora) || !isValidMinute(idaMin, idaHora)) { setIdaTimeError("Horário inválido para ida"); return; }
+    if (!isValidHour(voltaHora) || !isValidMinute(voltaMin, voltaHora)) { setVoltaTimeError("Horário inválido para volta"); return; }
+    const idaCode = normalizeFlightCode(idaCodigo);
+    if (idaCode && !isValidFlightCode(idaCode)) { setIdaCodeError("Código inválido (ex.: AV86, KL792)"); return; }
+    const novoVooIda = { ...(trip.vooIda || {}), horarioDetalhado: idaHorarioDetalhado } as any;
+    if (idaCode) novoVooIda.codigoVoo = idaCode;
     if (idaFaixa) novoVooIda.horarioFaixa = idaFaixa;
     if (idaInfo?.airline) novoVooIda.airline = idaInfo.airline;
 
-    const novoVooVolta = { ...(trip.vooVolta || {}), horarioDetalhado: voltaHorarioDetalhado, codigoVoo: voltaCodigo } as any;
+    const voltaCode = normalizeFlightCode(voltaCodigo);
+    if (voltaCode && !isValidFlightCode(voltaCode)) { setVoltaCodeError("Código inválido (ex.: AV86, KL792)"); return; }
+    const novoVooVolta = { ...(trip.vooVolta || {}), horarioDetalhado: voltaHorarioDetalhado } as any;
+    if (voltaCode) novoVooVolta.codigoVoo = voltaCode;
     if (voltaFaixa) novoVooVolta.horarioFaixa = voltaFaixa;
     if (voltaInfo?.airline) novoVooVolta.airline = voltaInfo.airline;
 
@@ -159,6 +190,18 @@ export default function DetalheVooPage() {
     setTrip(atualizado);
     showToast("Detalhes do voo salvos.", "success");
     setOpenDialog(false);
+  }
+
+  async function voltarLimparDetalhe() {
+    const user = auth?.currentUser || { uid: "local-dev-user" };
+    if (!tripId) { router.push(`/buscador-voo?tripId=${tripId}`); return; }
+    try {
+      if (user) {
+        await updateTrip(user.uid, tripId, { vooIda: null, vooVolta: null, buscaVoo: null, updatedAt: new Date().toISOString() });
+      }
+      showToast("Preferências de voo limpas.", "info");
+    } catch {}
+    router.push(`/buscador-voo?tripId=${tripId}`);
   }
 
   if (!trip) return <p>Carregando...</p>;
@@ -218,7 +261,7 @@ export default function DetalheVooPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Horários e Códigos</DialogTitle>
-              <DialogDescription>Informe os horários detalhados do voo e códigos (opcional).</DialogDescription>
+          <DialogDescription>Informe os horários detalhados do voo e códigos (opcional).</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4">
               <div>
@@ -237,11 +280,13 @@ export default function DetalheVooPage() {
                     className="flex-1"
                     placeholder="Código do Voo (opcional)"
                     value={idaCodigo}
-                    onChange={(e) => setIdaCodigo(e.target.value.toUpperCase().trim())}
+                    onChange={(e) => { setIdaCodigo(e.target.value); setIdaCodeError(null); }}
                     onBlur={() => prefillByCodigo("ida")}
                     onKeyDown={(e) => { if (e.key === "Enter") prefillByCodigo("ida"); }}
                   />
+                {idaCodeError ? <p className="text-xs text-red-600">{idaCodeError}</p> : <p className="text-xs text-slate-500">Ex.: AV86, KL792</p>}
                 </div>
+                {idaTimeError ? <p className="text-xs text-red-600 mt-1">{idaTimeError}</p> : (
                 <p className="text-xs text-slate-600 mt-1">
                   {(() => {
                     const baseOrigem = trip?.buscaVoo?.ida?.origem || trip?.buscaVoo?.origem;
@@ -255,6 +300,7 @@ export default function DetalheVooPage() {
                     return <>Horário local de partida: {label} ({origemIda})</>;
                   })()}
                 </p>
+                )}
               </div>
 
               <div>
@@ -273,11 +319,13 @@ export default function DetalheVooPage() {
                     className="flex-1"
                     placeholder="Código do Voo (opcional)"
                     value={voltaCodigo}
-                    onChange={(e) => setVoltaCodigo(e.target.value.toUpperCase().trim())}
+                    onChange={(e) => { setVoltaCodigo(e.target.value); setVoltaCodeError(null); }}
                     onBlur={() => prefillByCodigo("volta")}
                     onKeyDown={(e) => { if (e.key === "Enter") prefillByCodigo("volta"); }}
                   />
+                {voltaCodeError ? <p className="text-xs text-red-600">{voltaCodeError}</p> : <p className="text-xs text-slate-500">Ex.: AV86, KL792</p>}
                 </div>
+                {voltaTimeError ? <p className="text-xs text-red-600 mt-1">{voltaTimeError}</p> : (
                 <p className="text-xs text-slate-600 mt-1">
                   {(() => {
                     const baseOrigem = trip?.buscaVoo?.ida?.origem || trip?.buscaVoo?.origem;
@@ -291,6 +339,7 @@ export default function DetalheVooPage() {
                     return <>Horário local de partida: {label} ({origemVolta})</>;
                   })()}
                 </p>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -302,13 +351,43 @@ export default function DetalheVooPage() {
       </CardContent>
       <CardFooter>
         <div className="flex justify-end w-full gap-3">
-          <Button variant="secondary" onClick={() => router.push(`/buscador-voo?tripId=${tripId}`)}>Voltar</Button>
+          <Button variant="secondary" onClick={() => setConfirmResetOpen(true)}>Voltar</Button>
           <Button onClick={() => router.push(`/acomodacao-picker?tripId=${tripId}`)}>Continuar</Button>
         </div>
       </CardFooter>
       {toast && (
         <Toast message={toast.message} type={toast.type} position="bottom-left" />
       )}
+        <Dialog open={confirmResetOpen} onOpenChange={setConfirmResetOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reiniciar configuração de voos</DialogTitle>
+              <DialogDescription>
+                Isso vai limpar ida, volta e preferências de busca. Deseja continuar?
+                <span className="block mt-2 text-slate-700">
+                  {(() => {
+                    const oIda = trip?.buscaVoo?.ida?.origem || trip?.buscaVoo?.origem;
+                    const dIda = trip?.buscaVoo?.ida?.destino || trip?.buscaVoo?.destino;
+                    const dataIda = (trip?.vooIda?.data || trip?.dataInicio)?.slice(0, 10);
+                    return `Ida: ${oIda} → ${dIda} em ${dataIda}`;
+                  })()}
+                </span>
+                <span className="block text-slate-700">
+                  {(() => {
+                    const oVolta = trip?.buscaVoo?.volta?.origem || trip?.buscaVoo?.destino;
+                    const dVolta = trip?.buscaVoo?.volta?.destino || trip?.buscaVoo?.origem;
+                    const dataVolta = (trip?.vooVolta?.data || trip?.dataFim)?.slice(0, 10);
+                    return `Volta: ${oVolta} → ${dVolta} em ${dataVolta}`;
+                  })()}
+                </span>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="secondary" onClick={() => setConfirmResetOpen(false)}>Cancelar</Button>
+              <Button onClick={voltarLimparDetalhe}>Confirmar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </Card>
   );
 }

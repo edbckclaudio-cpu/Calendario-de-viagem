@@ -30,6 +30,8 @@ export default function BuscadorVooPage() {
   const [openIda, setOpenIda] = useState(false);
   const [openVolta, setOpenVolta] = useState(false);
   const [openRegras, setOpenRegras] = useState(false);
+  const [openCodigo, setOpenCodigo] = useState(false);
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
 
   // aeroportos/cidades de partida
   const [idaOrigem, setIdaOrigem] = useState<string>("");
@@ -38,6 +40,8 @@ export default function BuscadorVooPage() {
   const [idaClasse, setIdaClasse] = useState<string>("Econômica");
   const [idaCodigo, setIdaCodigo] = useState<string>("");
   const [idaHorarioDet, setIdaHorarioDet] = useState<string>("");
+  const [idaOrigemUsarPadrao, setIdaOrigemUsarPadrao] = useState<boolean>(false);
+  const [idaDestinoUsarPadrao, setIdaDestinoUsarPadrao] = useState<boolean>(false);
 
   const [voltaOrigem, setVoltaOrigem] = useState<string>("");
   const [idaDestino, setIdaDestino] = useState<string>("");
@@ -50,6 +54,9 @@ export default function BuscadorVooPage() {
   const [voltaClasse, setVoltaClasse] = useState<string>("Econômica");
   const [voltaCodigo, setVoltaCodigo] = useState<string>("");
   const [voltaHorarioDet, setVoltaHorarioDet] = useState<string>("");
+  const [voltaDerivadaDaIda, setVoltaDerivadaDaIda] = useState<boolean>(false);
+  const [idaConfigurada, setIdaConfigurada] = useState(false);
+  const [voltaConfigurada, setVoltaConfigurada] = useState(false);
 
   useEffect(() => {
     async function fetchTrip() {
@@ -60,6 +67,8 @@ export default function BuscadorVooPage() {
         setTrip(data);
         setIdaDate(data.dataInicio ? new Date(data.dataInicio) : undefined);
         setVoltaDate(data.dataFim ? new Date(data.dataFim) : undefined);
+        setIdaConfigurada(!!data.vooIda);
+        setVoltaConfigurada(!!data.vooVolta);
       }
     }
     fetchTrip();
@@ -72,6 +81,8 @@ export default function BuscadorVooPage() {
   // inicializar campos de origem com valores padrão
   useEffect(() => { if (!idaOrigem) setIdaOrigem(origem); }, [origem]);
   useEffect(() => { if (!voltaOrigem) setVoltaOrigem(destino); }, [destino]);
+  useEffect(() => { if (idaOrigemUsarPadrao) setIdaOrigem(origem); }, [idaOrigemUsarPadrao, origem]);
+  useEffect(() => { if (idaDestinoUsarPadrao) setIdaDestino(destino); }, [idaDestinoUsarPadrao, destino]);
   // inicializar campos de destino com valores padrão
   useEffect(() => { if (!idaDestino) setIdaDestino(destino); }, [destino]);
   useEffect(() => { if (!voltaDestino) setVoltaDestino(origem); }, [origem]);
@@ -229,11 +240,9 @@ export default function BuscadorVooPage() {
     if (code) return code.toUpperCase();
     return text; // mantém cidade livre quando não houver sigla
   };
-  const linksBusca = useMemo(() => {
-    const dIda = idaDateISO?.slice(0, 10);
-    const dVolta = voltaDateISO?.slice(0, 10);
+  const linksIda = useMemo(() => {
+    const d = idaDateISO?.slice(0, 10);
     const classeKayak = idaClasse === "Business" ? "business" : idaClasse === "First" ? "first" : "economy";
-    const classeSky = voltaClasse === "Business" ? "business" : voltaClasse === "First" ? "first" : "economy";
     const classeGoogle = idaClasse === "Business" ? "BUSINESS" : idaClasse === "First" ? "FIRST" : "ECONOMY";
     const horarioHint = (h: string) => {
       if (h?.startsWith("Manhã")) return "morning";
@@ -241,35 +250,86 @@ export default function BuscadorVooPage() {
       if (h?.startsWith("Noite")) return "night";
       return "any";
     };
-    const hIda = horarioHint(idaHorarioFaixa);
-    const hVolta = horarioHint(voltaHorarioFaixa);
+    const h = horarioHint(idaHorarioFaixa);
     const o = idaOrigem || origem;
-    const d = idaDestino || destino;
+    const dest = idaDestino || destino;
     return [
-      { nome: "Google Flights", url: `https://www.google.com/travel/flights?q=${encodeURIComponent(o)}+to+${encodeURIComponent(d)}&d=${dIda}&cabin=${classeGoogle}&time=${hIda}` },
-      { nome: "Kayak", url: `https://www.kayak.com/flights/${encodeURIComponent(o)}-${encodeURIComponent(d)}/${dIda}/${dVolta}?c=${classeKayak}&depart_time=${hIda}&return_time=${hVolta}` },
-      { nome: "Skyscanner", url: `https://www.skyscanner.net/transport/flights/${encodeURIComponent(o)}/${encodeURIComponent(d)}/${dIda}/${dVolta}/?cabinclass=${classeSky}&depart_time=${hIda}&return_time=${hVolta}` },
-      { nome: "LATAM", url: `https://www.latamairlines.com/br/pt/oferta?from=${encodeURIComponent(o)}&to=${encodeURIComponent(d)}&departure=${dIda}&cabin=${classeGoogle}&depart_time=${hIda}` },
-      { nome: "GOL", url: `https://www.voegol.com.br/?from=${encodeURIComponent(o)}&to=${encodeURIComponent(d)}&date=${dIda}&cabin=${classeGoogle}&depart_time=${hIda}` },
-      { nome: "Azul", url: `https://www.voeazul.com.br/?from=${encodeURIComponent(o)}&to=${encodeURIComponent(d)}&date=${dIda}&cabin=${classeGoogle}&depart_time=${hIda}` },
+      { nome: "Google Flights", url: `https://www.google.com/travel/flights?q=${encodeURIComponent(o)}+to+${encodeURIComponent(dest)}&d=${d}&cabin=${classeGoogle}&time=${h}` },
+      { nome: "Kayak", url: `https://www.kayak.com/flights/${encodeURIComponent(o)}-${encodeURIComponent(dest)}/${d}?c=${classeKayak}&depart_time=${h}` },
+      { nome: "Booking", url: `https://www.booking.com/flights/?origin=${encodeURIComponent(o)}&destination=${encodeURIComponent(dest)}&depart=${d}&cabinClass=${classeGoogle}&time=${h}` },
+      { nome: "Viajanet", url: `https://www.viajanet.com.br/?from=${encodeURIComponent(o)}&to=${encodeURIComponent(dest)}&date=${d}&cabin=${classeGoogle}&depart_time=${h}` },
+      { nome: "LATAM", url: `https://www.latamairlines.com/br/pt` },
+      { nome: "GOL", url: `https://www.voegol.com.br/?from=${encodeURIComponent(o)}&to=${encodeURIComponent(dest)}&date=${d}&cabin=${classeGoogle}&depart_time=${h}` },
+      { nome: "Azul", url: `https://www.voeazul.com.br/?from=${encodeURIComponent(o)}&to=${encodeURIComponent(dest)}&date=${d}&cabin=${classeGoogle}&depart_time=${h}` },
     ];
-  }, [origem, destino, idaDateISO, voltaDateISO, idaHorarioFaixa, voltaHorarioFaixa, idaClasse, voltaClasse, idaOrigem, idaDestino]);
+  }, [origem, destino, idaDateISO, idaHorarioFaixa, idaClasse, idaOrigem, idaDestino]);
+
+  const linksVolta = useMemo(() => {
+    const d = voltaDateISO?.slice(0, 10);
+    const classeKayak = voltaClasse === "Business" ? "business" : voltaClasse === "First" ? "first" : "economy";
+    const classeGoogle = voltaClasse === "Business" ? "BUSINESS" : voltaClasse === "First" ? "FIRST" : "ECONOMY";
+    const horarioHint = (h: string) => {
+      if (h?.startsWith("Manhã")) return "morning";
+      if (h?.startsWith("Tarde")) return "afternoon";
+      if (h?.startsWith("Noite")) return "night";
+      return "any";
+    };
+    const h = horarioHint(voltaHorarioFaixa);
+    const o = voltaOrigem || (idaDestino || destino);
+    const dest = voltaDestino || (idaOrigem || origem);
+    return [
+      { nome: "Google Flights", url: `https://www.google.com/travel/flights?q=${encodeURIComponent(o)}+to+${encodeURIComponent(dest)}&d=${d}&cabin=${classeGoogle}&time=${h}` },
+      { nome: "Kayak", url: `https://www.kayak.com/flights/${encodeURIComponent(o)}-${encodeURIComponent(dest)}/${d}?c=${classeKayak}&depart_time=${h}` },
+      { nome: "Booking", url: `https://www.booking.com/flights/?origin=${encodeURIComponent(o)}&destination=${encodeURIComponent(dest)}&depart=${d}&cabinClass=${classeGoogle}&time=${h}` },
+      { nome: "Viajanet", url: `https://www.viajanet.com.br/?from=${encodeURIComponent(o)}&to=${encodeURIComponent(dest)}&date=${d}&cabin=${classeGoogle}&depart_time=${h}` },
+      { nome: "LATAM", url: `https://www.latamairlines.com/br/pt` },
+      { nome: "GOL", url: `https://www.voegol.com.br/?from=${encodeURIComponent(o)}&to=${encodeURIComponent(dest)}&date=${d}&cabin=${classeGoogle}&depart_time=${h}` },
+      { nome: "Azul", url: `https://www.voeazul.com.br/?from=${encodeURIComponent(o)}&to=${encodeURIComponent(dest)}&date=${d}&cabin=${classeGoogle}&depart_time=${h}` },
+    ];
+  }, [origem, destino, voltaDateISO, voltaHorarioFaixa, voltaClasse, voltaOrigem, voltaDestino, idaDestino, idaOrigem]);
 
   async function salvarIda() {
     if (!trip) return;
     const user = auth?.currentUser || { uid: "local-dev-user" };
     if (!user || !tripId) return;
-    const voo: Voo = {
+    const vooIdaPayload: Voo = {
       data: idaDate?.toISOString() || trip.dataInicio,
       horarioFaixa: idaHorarioFaixa,
       classe: idaClasse,
-      // Código do voo e horário detalhado serão informados após a busca (página de detalhes)
       codigoVoo: "",
       horarioDetalhado: "",
     };
-    await updateTrip(user.uid, tripId, { vooIda: voo });
+    const payload: any = { vooIda: vooIdaPayload };
+    if (voltaDerivadaDaIda) {
+      const oV = idaDestino || destino;
+      const dV = idaOrigem || origem;
+      const vooVoltaPayload: Voo = {
+        data: voltaDate?.toISOString() || trip.dataFim,
+        horarioFaixa: voltaHorarioFaixa,
+        classe: voltaClasse,
+        codigoVoo: "",
+        horarioDetalhado: "",
+      };
+      payload.vooVolta = vooVoltaPayload;
+      payload.buscaVoo = {
+        origem: idaOrigem || origem,
+        destino: idaDestino || destino,
+        ida: { origem: idaOrigem || origem, destino: idaDestino || destino, data: idaDateISO, horarioFaixa: idaHorarioFaixa, classe: idaClasse },
+        volta: { origem: oV, destino: dV, data: voltaDateISO, horarioFaixa: voltaHorarioFaixa, classe: voltaClasse },
+      };
+    }
+    await updateTrip(user.uid, tripId, payload);
     setOpenIda(false);
-    showToast("Voo de ida salvo!", "success");
+    setIdaConfigurada(true);
+    if (voltaDerivadaDaIda) {
+      const oV = idaDestino || destino;
+      const dV = idaOrigem || origem;
+      setVoltaOrigem(oV);
+      setVoltaDestino(dV);
+      showToast("Ida confirmada. Links da volta permanecem desabilitados.", "success");
+    } else {
+      showToast("Voo de ida salvo!", "success");
+    }
   }
 
   async function salvarVolta() {
@@ -285,6 +345,7 @@ export default function BuscadorVooPage() {
     };
     await updateTrip(user.uid, tripId, { vooVolta: voo });
     setOpenVolta(false);
+    setVoltaConfigurada(true);
     showToast("Voo de volta salvo!", "success");
   }
 
@@ -327,12 +388,33 @@ export default function BuscadorVooPage() {
     router.push(`/detalhe-voo?tripId=${tripId}`);
   }
 
+  async function voltarLimpar() {
+    const user = auth?.currentUser || { uid: "local-dev-user" };
+    if (!tripId) { router.push(`/revisao-passageiros?tripId=${tripId}`); return; }
+    try {
+      if (user) {
+        await updateTrip(user.uid, tripId, { vooIda: null, vooVolta: null, buscaVoo: null, updatedAt: new Date().toISOString() });
+      }
+    } catch {}
+    setIdaConfigurada(false);
+    setVoltaConfigurada(false);
+    setVoltaDerivadaDaIda(false);
+    setIdaOrigem("");
+    setIdaDestino("");
+    setVoltaOrigem("");
+    setVoltaDestino("");
+    setOpenIda(false);
+    setOpenVolta(false);
+    router.push(`/revisao-passageiros?tripId=${tripId}`);
+  }
+
   if (!trip) return <p>Carregando...</p>;
 
+  const pronto = idaConfigurada && (voltaDerivadaDaIda || voltaConfigurada);
   return (
     <Card>
       <CardHeader>
-        <h2 className="text-xl font-semibold">TRAE - Buscador de Vôo</h2>
+        <h2 className="text-xl font-semibold">TRAE - Buscador de Voo</h2>
         <p className="text-sm text-slate-600">Preencha as preferências de IDA e VOLTA.</p>
       </CardHeader>
       <CardContent>
@@ -341,25 +423,25 @@ export default function BuscadorVooPage() {
           <p className="text-sm">Período: {trip.dataInicio?.slice(0,10)} → {trip.dataFim?.slice(0,10)}</p>
           <p className="text-sm">Passageiros: {trip.passageiros?.length || 0}</p>
           <div className="mt-2">
-            <Button variant="outline" onClick={() => setOpenRegras(true)}>Regras para Crianças</Button>
+            <Button variant="outline" onClick={() => setOpenRegras(true)}>Verifique as normas para voo de crianças</Button>
           </div>
         </div>
         <div className="mb-4 text-sm text-slate-700">
-          Dica TRAE: Se for usar Airbnb ou hotel, o check-in normalmente é a partir das 14h. Para evitar longas esperas, prefira voos que chegam perto do meio-dia em diante.
+          Dica TRAE: Se chegar muito cedo na cidade, verifique se sua hospedagem permite guardar malas até o horário de check-in. Para reduzir esperas, prefira voos que cheguem próximo ao meio-dia em diante.
         </div>
         <div className="flex gap-4 items-center">
           <Drawer open={openIda} onOpenChange={setOpenIda}>
             <DrawerTrigger asChild>
-              <Button>Escolha o vôo de ida</Button>
+              <Button>Configurar voo de ida</Button>
             </DrawerTrigger>
             <DrawerContent>
               <div className="p-4 space-y-4">
-                <h3 className="font-medium">Dados para solicitação do vôo</h3>
+                <h3 className="font-medium">Dados para solicitação do voo</h3>
                 <div>
                   <p className="text-sm text-slate-700">Data de Ida: {trip.dataInicio?.slice(0,10)}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-slate-700">Aeroporto ou cidade de partida</label>
+                  <label className="text-sm text-slate-700">Origem da ida</label>
                   <Input list="listaOrigensIda" value={idaOrigem} onChange={(e) => setIdaOrigem(normalizeAirportInput(e.target.value))} placeholder="Clique para ver opções ou digite" />
                   <datalist id="listaOrigensIda">
                     {aeroportosComuns.map((a) => (
@@ -368,13 +450,28 @@ export default function BuscadorVooPage() {
                   </datalist>
                 </div>
                 <div>
-                  <label className="text-sm text-slate-700">Aeroporto ou cidade de destino</label>
+                  <label className="text-sm text-slate-700">Destino da ida</label>
                   <Input list="listaDestinosIda" value={idaDestino} onChange={(e) => setIdaDestino(normalizeAirportInput(e.target.value))} placeholder="Clique para ver opções ou digite" />
                   <datalist id="listaDestinosIda">
                     {aeroportosComuns.map((a) => (
                       <option key={a.code} value={a.code}>{a.label}</option>
                     ))}
                   </datalist>
+                  <div className="mt-2 flex items-center gap-2">
+                    <input type="checkbox" id="chkVoltaDerivada" checked={voltaDerivadaDaIda} onChange={(e) => setVoltaDerivadaDaIda(e.target.checked)} />
+                    <label htmlFor="chkVoltaDerivada" className="text-xs text-slate-600">Voltar deste destino para a origem da ida</label>
+                  </div>
+                  {voltaDerivadaDaIda ? (
+                    <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600">
+                      {(() => {
+                        const oV = idaDestino || destino;
+                        const dV = idaOrigem || origem;
+                        const faixa = voltaHorarioFaixa || "Sem Horário Preferido";
+                        const cls = voltaClasse || "Econômica";
+                        return `Resumo da volta automática: ${oV} → ${dV} • ${faixa}, ${cls}`;
+                      })()}
+                    </div>
+                  ) : null}
                 </div>
                 <div>
                   <label className="text-sm text-slate-700">Faixa de Horário Preferida</label>
@@ -405,18 +502,31 @@ export default function BuscadorVooPage() {
                     <Button variant="secondary">Fechar</Button>
                   </DrawerClose>
                   <Button variant="outline" onClick={() => setOpenIda(false)}>Cancelar</Button>
-                  <Button onClick={salvarIda}>Continuar</Button>
+                  <Button onClick={salvarIda}>Confirmar</Button>
                 </div>
               </div>
             </DrawerContent>
           </Drawer>
           <Drawer open={openVolta} onOpenChange={setOpenVolta}>
             <DrawerTrigger asChild>
-              <Button>Escolha o vôo da volta</Button>
+              <Button
+                disabled={!idaConfigurada || voltaConfigurada || voltaDerivadaDaIda}
+                title={
+                  !idaConfigurada
+                    ? "Configure a ida primeiro"
+                    : voltaConfigurada
+                    ? "Volta já definida"
+                    : voltaDerivadaDaIda
+                    ? "Volta não será usada neste fluxo"
+                    : undefined
+                }
+              >
+                Configurar voo de volta
+              </Button>
             </DrawerTrigger>
             <DrawerContent>
               <div className="p-4 space-y-4">
-                <h3 className="font-medium">Dados para solicitação do vôo</h3>
+                <h3 className="font-medium">Dados para solicitação do voo</h3>
                 <div>
                   <p className="text-sm text-slate-700">Data de Volta: {trip.dataFim?.slice(0,10)}</p>
                 </div>
@@ -426,44 +536,22 @@ export default function BuscadorVooPage() {
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm text-slate-700">Aeroporto ou cidade de partida</label>
-                  <Input list="listaOrigensVolta" value={voltaOrigem} onChange={(e) => setVoltaOrigem(normalizeAirportInput(e.target.value))} placeholder="Clique para ver opções ou digite" disabled={voltaOrigemUsarDestinoIda} />
+                  <label className="text-sm text-slate-700">Origem da volta</label>
+                  <Input list="listaOrigensVolta" value={voltaOrigem} onChange={(e) => setVoltaOrigem(normalizeAirportInput(e.target.value))} placeholder="Clique para ver opções ou digite" />
                   <datalist id="listaOrigensVolta">
                     {aeroportosComuns.map((a) => (
                       <option key={a.code} value={a.code}>{a.label}</option>
                     ))}
                   </datalist>
-                  <div className="mt-1 flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="chkVoltaOrigemUsarDestinoIda"
-                      checked={voltaOrigemUsarDestinoIda}
-                      onChange={(e) => setVoltaOrigemUsarDestinoIda(e.target.checked)}
-                    />
-                    <label htmlFor="chkVoltaOrigemUsarDestinoIda" className="text-xs text-slate-600">
-                      Usar o aeroporto de chegada da ida como partida da volta
-                    </label>
-                  </div>
                 </div>
                 <div>
-                  <label className="text-sm text-slate-700">Aeroporto ou cidade de destino</label>
-                  <Input list="listaDestinosVolta" value={voltaDestino} onChange={(e) => setVoltaDestino(normalizeAirportInput(e.target.value))} placeholder="Clique para ver opções ou digite" disabled={voltaDestinoUsarOrigemIda} />
+                  <label className="text-sm text-slate-700">Destino da volta</label>
+                  <Input list="listaDestinosVolta" value={voltaDestino} onChange={(e) => setVoltaDestino(normalizeAirportInput(e.target.value))} placeholder="Clique para ver opções ou digite" />
                   <datalist id="listaDestinosVolta">
                     {aeroportosComuns.map((a) => (
                       <option key={a.code} value={a.code}>{a.label}</option>
                     ))}
                   </datalist>
-                  <div className="mt-1 flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="chkVoltaDestinoUsarOrigemIda"
-                      checked={voltaDestinoUsarOrigemIda}
-                      onChange={(e) => setVoltaDestinoUsarOrigemIda(e.target.checked)}
-                    />
-                    <label htmlFor="chkVoltaDestinoUsarOrigemIda" className="text-xs text-slate-600">
-                      Usar o aeroporto de partida da ida como destino da volta
-                    </label>
-                  </div>
                 </div>
                 <div>
                   <label className="text-sm text-slate-700">Faixa de Horário Preferida</label>
@@ -494,31 +582,55 @@ export default function BuscadorVooPage() {
                     <Button variant="secondary">Fechar</Button>
                   </DrawerClose>
                   <Button variant="outline" onClick={() => setOpenVolta(false)}>Cancelar</Button>
-                  <Button onClick={salvarVolta}>Continuar</Button>
+                  <Button onClick={salvarVolta}>Confirmar</Button>
                 </div>
               </div>
             </DrawerContent>
           </Drawer>
-          <Button variant="secondary" onClick={aplicarPreferenciasBusca}>Fazer Busca</Button>
         </div>
         <div className="mt-6">
           <h3 className="font-medium">Links de Busca</h3>
-          <ul className="list-disc ml-6 text-sm">
-            {linksBusca.map((l) => (
-              <li key={l.nome}>
-                <a className="text-blue-700 underline" href={l.url} target="_blank" rel="noreferrer">
-                  {l.nome}
-                </a>
-              </li>
-            ))}
-          </ul>
+          <p className="text-sm text-slate-700 mt-1">Estes links abrem diretamente os buscadores com suas preferências preenchidas. Compare opções. Após comprar, anote horários e o código do voo.</p>
+          <div className="mt-2">
+            <Button variant="outline" onClick={() => setOpenCodigo(true)}>Onde encontro o código do voo?</Button>
+          </div>
+          <div className="mt-3 grid md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-medium text-sm">Voo de ida</h4>
+              <ul className="list-disc ml-6 text-sm">
+                {linksIda.map((l) => (
+                  <li key={l.nome}>
+                    {idaConfigurada ? (
+                      <a className="text-blue-700 underline" href={l.url} target="_blank" rel="noreferrer">{l.nome}</a>
+                    ) : (
+                      <span className="text-slate-400" title="Configure a ida para habilitar">{l.nome}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium text-sm">Voo de volta</h4>
+              <ul className="list-disc ml-6 text-sm">
+                {linksVolta.map((l) => (
+                  <li key={l.nome}>
+                    {voltaConfigurada && !voltaDerivadaDaIda ? (
+                      <a className="text-blue-700 underline" href={l.url} target="_blank" rel="noreferrer">{l.nome}</a>
+                    ) : (
+                      <span className="text-slate-400" title={voltaDerivadaDaIda ? "Desabilitado: volta não usada neste fluxo" : "Configure a volta para habilitar"}>{l.nome}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
 
         <Dialog open={openRegras} onOpenChange={setOpenRegras}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Regras de Idade para Crianças (Companhias Aéreas)</DialogTitle>
-              <DialogDescription>Informações gerais (podem variar por companhia):</DialogDescription>
+              <DialogTitle>Normas para voo de crianças</DialogTitle>
+              <DialogDescription>Orientações gerais; confirme regras específicas na companhia aérea.</DialogDescription>
             </DialogHeader>
             <ul className="list-disc ml-6 text-sm">
               <li>Bebês (0–2 anos): geralmente viajam no colo; taxa reduzida.</li>
@@ -531,16 +643,60 @@ export default function BuscadorVooPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        <Dialog open={openCodigo} onOpenChange={setOpenCodigo}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Código do voo</DialogTitle>
+              <DialogDescription>O código aparece no e-ticket, confirmação de compra ou página da companhia. Exemplos: AV86, KL792.</DialogDescription>
+            </DialogHeader>
+            <div className="text-sm text-slate-700">
+              <p>Procure por Número do voo ou Flight number no comprovante. Em buscadores, após escolher o voo, o código aparece ao lado da rota.</p>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setOpenCodigo(false)}>Fechar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
       <CardFooter>
         <div className="flex justify-end w-full gap-3">
-          <Button variant="secondary" onClick={() => router.push(`/revisao-passageiros?tripId=${tripId}`)}>Voltar</Button>
-          <Button onClick={continuarDetalhe}>Continuar</Button>
+          <Button variant="secondary" onClick={() => setConfirmResetOpen(true)}>Voltar</Button>
+          <Button onClick={continuarDetalhe} disabled={!pronto}>Prosseguir para detalhes do voo</Button>
         </div>
       </CardFooter>
       {toast && (
         <Toast message={toast.message} type={toast.type} position="bottom-left" />
       )}
+        <Dialog open={confirmResetOpen} onOpenChange={setConfirmResetOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reiniciar configuração de voos</DialogTitle>
+              <DialogDescription>
+                Isso vai limpar ida, volta e preferências de busca. Deseja continuar?
+                <span className="block mt-2 text-slate-700">
+                  {(() => {
+                    const oIda = idaOrigem || origem;
+                    const dIda = idaDestino || destino;
+                    const dataIda = (idaDateISO || trip?.dataInicio)?.slice(0, 10);
+                    return `Ida: ${oIda} → ${dIda} em ${dataIda}`;
+                  })()}
+                </span>
+                <span className="block text-slate-700">
+                  {(() => {
+                    const oVolta = voltaOrigem || (idaDestino || destino);
+                    const dVolta = voltaDestino || (idaOrigem || origem);
+                    const dataVolta = (voltaDateISO || trip?.dataFim)?.slice(0, 10);
+                    return `Volta: ${oVolta} → ${dVolta} em ${dataVolta}`;
+                  })()}
+                </span>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="secondary" onClick={() => setConfirmResetOpen(false)}>Cancelar</Button>
+              <Button onClick={voltarLimpar}>Confirmar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </Card>
   );
 }

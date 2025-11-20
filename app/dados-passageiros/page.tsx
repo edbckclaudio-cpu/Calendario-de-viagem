@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
-import { auth, saveTrip, listTripsByEmail, listTrips } from "@/lib/firebase";
+import { auth, saveTrip, listTripsByEmail, listTrips, removeTrip } from "@/lib/firebase";
 
 type Passageiro = { nome: string; dataNascimento?: string; idadeNaViagem?: number };
 
@@ -149,7 +149,7 @@ export default function DadosPassageirosPage() {
       <CardHeader>
         <h2 className="text-xl font-semibold">TRAE - Dados dos Passageiros</h2>
         <div className="mt-2">
-          <Button onClick={carregarViagensSalvas} variant="secondary" size="sm">Recuperar viagem salva</Button>
+          <Button onClick={carregarViagensSalvas} variant="secondary" size="sm">Lista de viagens pesquisadas</Button>
         </div>
         <p className="text-sm text-slate-600">Preencha os dados iniciais da viagem.</p>
       </CardHeader>
@@ -234,7 +234,16 @@ export default function DadosPassageirosPage() {
               savedTrips.map((v) => (
                 <div key={v.tripId} className="flex items-center justify-between rounded-md border border-slate-200 p-2 text-sm">
                   <span>{v.cidade || "Viagem"}</span>
-                  <Button onClick={() => router.push(`/calendario?tripId=${v.tripId}`)} size="sm">Abrir calendário</Button>
+                  <div className="flex items-center gap-2">
+                    <Button onClick={() => router.push(`/calendario?tripId=${v.tripId}`)} size="sm">Abrir calendário</Button>
+                    <Button variant="destructive" size="sm" onClick={async () => {
+                      const user = auth?.currentUser || { uid: "local-dev-user" };
+                      if (!user || !email) return;
+                      await removeTrip(user.uid, email, v.tripId);
+                      const items = await listTripsByEmail(email);
+                      setSavedTrips(items);
+                    }}>Excluir</Button>
+                  </div>
                 </div>
               ))
             )}

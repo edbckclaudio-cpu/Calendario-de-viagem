@@ -83,7 +83,7 @@ export default function RevisaoPassageirosPage() {
       <CardFooter>
         <div className="flex justify-end w-full gap-3">
           <Button variant="secondary" onClick={() => router.push(`/dados-passageiros?tripId=${tripId}`)}>Editar</Button>
-          <Button onClick={() => router.push(`/buscador-voo?tripId=${tripId}`)}>Seguir</Button>
+          <Button onClick={() => router.push(`/buscador-voo?tripId=${tripId}`)}>Confirmar</Button>
         </div>
       </CardFooter>
     </Card>

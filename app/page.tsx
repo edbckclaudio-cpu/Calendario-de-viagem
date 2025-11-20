@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { seedAdmin, login, register, validatePassword, getUsers, getCurrentUser } from "@/lib/auth-local";
 
@@ -109,7 +110,7 @@ export default function HomePage() {
             </div>
             <div className="space-y-1">
               <label className="text-sm text-slate-600">Senha</label>
-              <Input type="password" placeholder="sua senha" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <PasswordInput placeholder="sua senha" value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
@@ -137,7 +138,7 @@ export default function HomePage() {
             </div>
             <div className="space-y-1">
               <label className="text-sm text-slate-600">Senha</label>
-              <Input type="password" placeholder="7–10 caracteres, letras e números" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} />
+              <PasswordInput placeholder="7–10 caracteres, letras e números" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} />
             </div>
             {regError && <p className="text-red-600 text-sm">{regError}</p>}
           </div>

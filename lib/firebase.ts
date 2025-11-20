@@ -1,7 +1,7 @@
 "use client";
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, signInAnonymously, signInWithCustomToken } from "firebase/auth";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs, deleteDoc } from "firebase/firestore";
 
 const firebaseConfig: any = (globalThis as any).__firebase_config;
 const firebaseEnabled = !!(firebaseConfig && firebaseConfig.apiKey);
@@ -135,5 +135,24 @@ export async function listTripsByEmail(email: string): Promise<Array<{ tripId: s
   } else {
     const key = `trae_email_index_${encodeURIComponent(email)}`;
     return JSON.parse(localStorage.getItem(key) || "[]");
+  }
+}
+
+export async function removeTrip(userId: string, email: string, tripId: string) {
+  if (firebaseEnabled && db) {
+    const tRef = doc(db, tripPath(userId, tripId));
+    const eRef = doc(db, emailIndexPath(email, tripId));
+    await deleteDoc(tRef);
+    await deleteDoc(eRef);
+    return;
+  } else {
+    const keyTrips = `trae_trips_${userId}`;
+    const store = JSON.parse(localStorage.getItem(keyTrips) || "{}");
+    delete store[tripId];
+    localStorage.setItem(keyTrips, JSON.stringify(store));
+    const keyIdx = `trae_email_index_${encodeURIComponent(email)}`;
+    const arr: Array<any> = JSON.parse(localStorage.getItem(keyIdx) || "[]");
+    const next = arr.filter((x: any) => x.tripId !== tripId);
+    localStorage.setItem(keyIdx, JSON.stringify(next));
   }
 }

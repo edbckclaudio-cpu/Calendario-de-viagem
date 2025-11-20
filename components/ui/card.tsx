@@ -25,3 +25,12 @@ export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDi
 export function CardFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("p-3 sm:p-4 border-t border-slate-200", className)} {...props} />;
 }
+
+export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+  return (
+    <h3
+      className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+      {...props}
+    />
+  );
+}
