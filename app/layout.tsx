@@ -13,30 +13,43 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const useOldLayout = process.env.NEXT_PUBLIC_TRAE_LAYOUT === "old" || !process.env.NEXT_PUBLIC_TRAE_LAYOUT;
   return (
     <html lang="pt-br">
       <body>
         <div className="app-shell">
-          {/* Sidebar só em telas médias ou maiores */}
-          <div className="hidden md:block">
-            <Sidebar />
-          </div>
-          <div className="app-content">
-            <header className="content-header">
-              <MobileNav />
-              <h1 className="header-title">TRAE - Trip Resource and Expedition</h1>
-              <p className="subheader-title hidden sm:block">TRAE - A Viagem</p>
-              <div className="hidden md:block">
-                <Breadcrumbs />
+          {useOldLayout ? (
+            <>
+              <Sidebar />
+              <div className="app-content">
+                <header className="content-header">
+                  <h1 className="header-title">TRAE - Trip Resource and Expedition</h1>
+                </header>
+                <main className="content-main">{children}</main>
               </div>
-              <UserAuthControls />
-            </header>
-            <main className="content-main">{children}</main>
-            {/* BottomNav apenas no mobile */}
-            <div className="md:hidden">
-              <BottomNav />
-            </div>
-          </div>
+            </>
+          ) : (
+            <>
+              <div className="hidden md:block">
+                <Sidebar />
+              </div>
+              <div className="app-content">
+                <header className="content-header">
+                  <MobileNav />
+                  <h1 className="header-title">TRAE - Trip Resource and Expedition</h1>
+                  <p className="subheader-title hidden sm:block">TRAE - A Viagem</p>
+                  <div className="hidden md:block">
+                    <Breadcrumbs />
+                  </div>
+                  <UserAuthControls />
+                </header>
+                <main className="content-main">{children}</main>
+                <div className="md:hidden">
+                  <BottomNav />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </body>
     </html>
