@@ -307,6 +307,7 @@ export default function MultiplasCidadesPage() {
   if (!trip || cidades.length === 0) return <p>Carregando...</p>;
 
   return (
+    <div className="container mx-auto max-w-5xl px-4 py-6">
     <Card>
       <CardHeader>
         <h2 className="text-xl font-semibold">TRAE - Múltiplas Cidades</h2>
@@ -593,6 +594,7 @@ export default function MultiplasCidadesPage() {
         <Toast message={toast.message} type={toast.type} position="bottom-left" />
       ) : null}
     </Card>
+    </div>
   );
 }
   function normalizePeriods(arr: Cidade[], tripFim?: string) {

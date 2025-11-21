@@ -236,6 +236,7 @@ export default function DetalheVooPage() {
   if (!trip) return <p>Carregando...</p>;
 
   return (
+    <div className="container mx-auto max-w-5xl px-4 py-6">
     <Card>
       <CardHeader>
         <h2 className="text-xl font-semibold">TRAE - Detalhe da reserva de voo</h2>
@@ -541,5 +542,6 @@ export default function DetalheVooPage() {
           </DialogContent>
         </Dialog>
     </Card>
+    </div>
   );
 }

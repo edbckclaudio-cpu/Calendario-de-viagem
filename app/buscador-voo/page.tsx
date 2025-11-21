@@ -445,6 +445,7 @@ export default function BuscadorVooPage() {
 
   const pronto = idaConfigurada && (voltaDerivadaDaIda || voltaConfigurada);
   return (
+    <div className="container mx-auto max-w-5xl px-4 py-6">
     <Card>
       <CardHeader>
         <h2 className="text-xl font-semibold">TRAE - Buscador de Voo</h2>
@@ -782,5 +783,6 @@ export default function BuscadorVooPage() {
           </DialogContent>
         </Dialog>
     </Card>
+    </div>
   );
 }
