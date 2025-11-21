@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,14 @@ import { auth, loadTrip, updateTrip, indexTripForEmail } from "@/lib/firebase";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { airportCoordsByIATA, cityCenterCoordsByName, parseCoordsFromAddress, haversineDistanceKm, estimateTransportOptions } from "@/lib/utils";
+import Toast from "@/components/ui/toast";
 
 type Evento = { data: string; hora?: string; tipo: string; local?: string; descricao?: string; url?: string; source?: { kind: "atividade"; idx: number } };
 
 export default function CalendarioPage() {
   const params = useSearchParams();
   const tripId = params.get("tripId");
+  const router = useRouter();
   const [trip, setTrip] = useState<any | null>(null);
   const [viewDate, setViewDate] = useState<Date | undefined>();
   const [editing, setEditing] = useState<null | { idx: number; data: string; hora?: string; nome?: string; reservaId?: string }>(null);
@@ -32,6 +34,12 @@ export default function CalendarioPage() {
     aviso?: string;
     gmapsUrl?: string;
   }>(null);
+  const [toast, setToast] = useState<null | { message: string; type: "success" | "error" | "info" }>(null);
+
+  function showToast(message: string, type: "success" | "error" | "info" = "info") {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  }
 
   useEffect(() => {
     async function fetch() {
@@ -88,7 +96,13 @@ export default function CalendarioPage() {
       const descricao = partes.length ? partes.join(" — ") : undefined;
       ev.push({ data, hora, tipo, local, descricao, url: a.url, source: { kind: "atividade", idx } });
     });
-    return ev.sort((x, y) => x.data.localeCompare(y.data));
+    return ev.sort((a, b) => {
+      const d = a.data.localeCompare(b.data);
+      if (d !== 0) return d;
+      const ha = a.hora || (a.tipo.includes("Check-in") ? "00:00" : a.tipo.includes("Check-out") ? "23:59" : "99:99");
+      const hb = b.hora || (b.tipo.includes("Check-in") ? "00:00" : b.tipo.includes("Check-out") ? "23:59" : "99:99");
+      return ha.localeCompare(hb);
+    });
   }, [trip]);
 
   // Calcula transporte até o aeroporto de embarque para o dia selecionado
@@ -221,6 +235,26 @@ export default function CalendarioPage() {
       const hb = b.hora || "99:99";
       return ha.localeCompare(hb);
     });
+  }
+
+  async function addEntretenimentoParaDia() {
+    const user = auth?.currentUser || { uid: "local-dev-user" };
+    const dStr = viewDate ? new Date(viewDate).toISOString().slice(0, 10) : undefined;
+    if (!user || !tripId || !trip || !dStr) return;
+    const cidadeObj = getCityForDate(dStr);
+    const cidade = cidadeObj?.nome || computeCityLabel();
+    const atividades = [...(trip.atividades || []), {
+      nome: "Atividade a definir",
+      tipo: "atividade",
+      cidade,
+      data: dStr,
+    }];
+    await updateTrip(user.uid, tripId, { atividades });
+    const rec = await loadTrip(user.uid, tripId);
+    setTrip(rec);
+    const newIdx = (rec.atividades || []).length - 1;
+    setEditing({ idx: newIdx, data: dStr, hora: "", nome: "Atividade a definir", reservaId: "" });
+    setPopupOpen(false);
   }
 
   function getFlightsForDate(dateStr?: string) {
@@ -672,8 +706,13 @@ export default function CalendarioPage() {
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-xl font-semibold">Calendário</h2>
             <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-600">
+                {viewDate ? `Dia selecionado: ${new Date(viewDate).toISOString().slice(0,10)}` : "Selecione um dia"}
+              </span>
               <Button variant="secondary" onClick={handleSalvarViagem}>Salvar esta viagem</Button>
               <Button onClick={handleEnviarEmail}>Enviar calendário por email</Button>
+              <Button variant="outline" onClick={() => router.push(`/acomodacao-detalhe?tripId=${tripId}`)}>Modificar Acomodação</Button>
+              <Button onClick={() => router.push(`/entretenimento?tripId=${tripId}`)}>Gerenciar Entretenimento</Button>
             </div>
           </div>
           <div className="mt-2">
@@ -700,7 +739,18 @@ export default function CalendarioPage() {
 
       <Card>
         <CardHeader>
-          <h2 className="text-xl font-semibold">Lista Cronológica</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold">Lista Cronológica</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-600">
+                {viewDate ? `Dia selecionado: ${new Date(viewDate).toISOString().slice(0,10)}` : "Selecione um dia no calendário"}
+              </span>
+              <Button size="sm" onClick={() => {
+                if (!viewDate) { showToast("Selecione um dia no calendário.", "info"); return; }
+                addEntretenimentoParaDia();
+              }} disabled={!viewDate}>Adicionar Entretenimento</Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <ul className="text-sm grid gap-2">
@@ -741,8 +791,13 @@ export default function CalendarioPage() {
                   </div>
                   {e.source?.kind === "atividade" && editing?.idx !== e.source.idx ? (
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => removeAtividade(e.source!.idx)}>Remover</Button>
-                      <Button onClick={() => beginEdit(e.source!.idx)}>Editar</Button>
+                      <Button variant="outline" onClick={() => removeAtividade(e.source!.idx)}>Remover Entretenimento</Button>
+                      <Button onClick={() => beginEdit(e.source!.idx)}>Editar Entretenimento</Button>
+                    </div>
+                  ) : null}
+                  {e.tipo.includes("Check-in") ? (
+                    <div className="flex gap-2">
+                      <Button onClick={() => router.push(`/acomodacao-detalhe?tripId=${tripId}`)}>Alterar Acomodação</Button>
                     </div>
                   ) : null}
                 </div>
@@ -783,7 +838,12 @@ export default function CalendarioPage() {
       <Dialog open={popupOpen} onOpenChange={setPopupOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Detalhes do dia</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Detalhes do dia</DialogTitle>
+              {viewDate ? (
+                <span className="text-xs text-slate-600">Dia: {new Date(viewDate).toISOString().slice(0,10)}</span>
+              ) : null}
+            </div>
             <DialogDescription>
               {(() => {
                 const dStr = viewDate ? new Date(viewDate).toISOString().slice(0,10) : undefined;
@@ -870,7 +930,13 @@ export default function CalendarioPage() {
                       </ul>
                     </>
                   ) : null}
-                  <p className="font-medium">Atividades do dia</p>
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium">Atividades do dia</p>
+                    <Button size="sm" onClick={() => {
+                      if (!viewDate) { showToast("Selecione um dia no calendário.", "info"); return; }
+                      addEntretenimentoParaDia();
+                    }} disabled={!viewDate}>Adicionar Entretenimento</Button>
+                  </div>
                   {acts.length ? (
                     <ul className="grid gap-2 text-sm">
                       {acts.map((a: any, i: number) => (
@@ -888,10 +954,15 @@ export default function CalendarioPage() {
             })()}
           </div>
           <DialogFooter>
+            <div className="mr-auto flex gap-2">
+              <Button variant="outline" onClick={() => router.push(`/acomodacao-detalhe?tripId=${tripId}`)}>Modificar Acomodação</Button>
+              <Button onClick={() => router.push(`/entretenimento?tripId=${tripId}`)}>Gerenciar Entretenimento</Button>
+            </div>
             <Button variant="secondary" onClick={() => setPopupOpen(false)}>Fechar</Button>
           </DialogFooter>
-        </DialogContent>
+      </DialogContent>
       </Dialog>
+      {toast ? <Toast message={toast.message} type={toast.type} /> : null}
     </div>
   );
 }
