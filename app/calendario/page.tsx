@@ -118,11 +118,11 @@ export default function CalendarioPage() {
         return (code && map[code]) || code || "";
       };
       const ap = airportCoordsByIATA(aeroportoOrigem || undefined);
-      // tenta obter endereço da cidade ativa no dia
       const c = getCityForDate(dStr);
       const addressRaw = (() => {
-        const cityAddr = c ? ((c.endereco || c.hotelNome || "").trim()) : "";
         const tripAddr = (trip?.enderecoOrigem || "").trim();
+        const cityAddr = c ? ((c.endereco || c.hotelNome || "").trim()) : "";
+        if (f.tipo === "Voo IDA") return tripAddr || cityAddr;
         return cityAddr || tripAddr;
       })();
       // Se não houver endereço, tenta centro da cidade; caso não haja cidade, mostra aviso

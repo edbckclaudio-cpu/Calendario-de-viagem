@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { auth, loadTrip, updateTrip } from "@/lib/firebase";
-import { getFlightInfoByCode, formatConvertedLocalTimeWithGMT, formatLocalTimeWithGMT } from "@/lib/utils";
+import { getFlightInfoByCode, formatConvertedLocalTimeWithGMT, formatLocalTimeWithGMT, airportCoordsByIATA, haversineDistanceKm, getTimeZoneForAirport } from "@/lib/utils";
 import Toast from "@/components/ui/toast";
 
 export default function DetalheVooPage() {
@@ -137,6 +137,34 @@ export default function DetalheVooPage() {
     if (voltaHora === "24" && voltaMin !== "00") setVoltaMin("00");
   }, [voltaHora]);
 
+  function estimateFlightMinutes(o?: string | null, d?: string | null): number | null {
+    const O = (o || "").toString();
+    const D = (d || "").toString();
+    if (!O || !D) return null;
+    const cO = airportCoordsByIATA(O);
+    const cD = airportCoordsByIATA(D);
+    if (cO && cD) {
+      const dist = haversineDistanceKm(cO, cD);
+      const base = (dist / 800) * 60;
+      const overhead = 30;
+      const min = Math.round(base + overhead);
+      return Math.max(50, Math.min(min, 900));
+    }
+    const tzO = getTimeZoneForAirport(O);
+    const tzD = getTimeZoneForAirport(D);
+    if (tzO && tzD && tzO === tzD) return 90;
+    return 150;
+  }
+
+  function addMinutes(hh: string | number, mm: string | number, add: number): { h: string; m: string } {
+    const base = (parseInt(String(hh), 10) || 0) * 60 + (parseInt(String(mm), 10) || 0);
+    const tot = base + (add || 0);
+    const norm = ((tot % 1440) + 1440) % 1440;
+    const h = String(Math.floor(norm / 60)).padStart(2, "0");
+    const m = String(norm % 60).padStart(2, "0");
+    return { h, m };
+  }
+
   async function salvarDetalhes() {
     const user = auth?.currentUser || { uid: "local-dev-user" };
     if (!user || !tripId || !trip) return;
@@ -262,6 +290,10 @@ export default function DetalheVooPage() {
             <DialogHeader>
               <DialogTitle>Horários e Códigos</DialogTitle>
           <DialogDescription>Informe os horários detalhados do voo e códigos (opcional).</DialogDescription>
+              <p className="mt-1 text-xs text-slate-500">
+                Observação: os horários recuperados pelo código do voo são referenciais e podem apresentar divergências.
+                Valide e informe o horário exato conforme seu bilhete para garantir a precisão do calendário.
+              </p>
             </DialogHeader>
             <div className="grid gap-4">
               <div>
@@ -301,6 +333,60 @@ export default function DetalheVooPage() {
                   })()}
                 </p>
                 )}
+                {idaInfo ? (
+                  <div className="mt-2 rounded border border-slate-200 bg-slate-50 p-3 grid gap-1 text-xs text-slate-500">
+                    <p>
+                      {(() => {
+                        const airline = idaInfo.airline || trip.vooIda?.airline || "—";
+                        const codeRaw = idaCodigo || trip.vooIda?.codigoVoo || "";
+                        const codeNorm = normalizeFlightCode(codeRaw);
+                        const code = isValidFlightCode(codeNorm) ? codeNorm : null;
+                        return <><span className="font-medium">Companhia:</span> {airline}{code ? <> — <span className="inline-block rounded bg-slate-200 px-1">{code}</span></> : null}</>;
+                      })()}
+                    </p>
+                    <p>
+                      {(() => {
+                        const o = idaInfo.origin || trip?.buscaVoo?.ida?.origem || trip?.buscaVoo?.origem;
+                        const d = idaInfo.destination || trip?.buscaVoo?.ida?.destino || trip?.buscaVoo?.destino;
+                        return <><span className="font-medium">Rota:</span> {o || "—"} → {d || "—"}</>;
+                      })()}
+                    </p>
+                    <p>
+                      {(() => {
+                        const o = idaInfo.origin || trip?.buscaVoo?.ida?.origem || trip?.buscaVoo?.origem;
+                        const hh = idaInfo.departureHour || idaHora;
+                        const mm = idaInfo.departureMinute || idaMin;
+                        const label = formatLocalTimeWithGMT(
+                          trip.vooIda?.data || trip.dataInicio,
+                          hh,
+                          mm,
+                          o
+                        );
+                        const faixa = idaInfo.horarioFaixa || idaFaixa || null;
+                        return <><span className="font-medium">Partida:</span> {label} {o ? `(${o})` : ""}{faixa ? ` — ${faixa}` : ""}</>;
+                      })()}
+                    </p>
+                    <p>
+                      {(() => {
+                        const o = idaInfo.origin || trip?.buscaVoo?.ida?.origem || trip?.buscaVoo?.origem;
+                        const d = idaInfo.destination || trip?.buscaVoo?.ida?.destino || trip?.buscaVoo?.destino;
+                        if (!o || !d) return null;
+                        const depH = idaInfo.departureHour || idaHora;
+                        const depM = idaInfo.departureMinute || idaMin;
+                        const estMin = estimateFlightMinutes(o, d) || 0;
+                        const next = addMinutes(depH, depM, estMin);
+                        const arrLabel = formatConvertedLocalTimeWithGMT(
+                          trip.vooIda?.data || trip.dataInicio,
+                          next.h,
+                          next.m,
+                          o,
+                          d
+                        );
+                        return <><span className="font-medium">Chegada estimada:</span> {arrLabel} ({d})</>;
+                      })()}
+                    </p>
+                  </div>
+                ) : null}
               </div>
 
               <div>
@@ -340,6 +426,60 @@ export default function DetalheVooPage() {
                   })()}
                 </p>
                 )}
+                {voltaInfo ? (
+                  <div className="mt-2 rounded border border-slate-200 bg-slate-50 p-3 grid gap-1 text-xs text-slate-500">
+                    <p>
+                      {(() => {
+                        const airline = voltaInfo.airline || trip.vooVolta?.airline || "—";
+                        const codeRaw = voltaCodigo || trip.vooVolta?.codigoVoo || "";
+                        const codeNorm = normalizeFlightCode(codeRaw);
+                        const code = isValidFlightCode(codeNorm) ? codeNorm : null;
+                        return <><span className="font-medium">Companhia:</span> {airline}{code ? <> — <span className="inline-block rounded bg-slate-200 px-1">{code}</span></> : null}</>;
+                      })()}
+                    </p>
+                    <p>
+                      {(() => {
+                        const o = voltaInfo.origin || trip?.buscaVoo?.volta?.origem || trip?.buscaVoo?.destino;
+                        const d = voltaInfo.destination || trip?.buscaVoo?.volta?.destino || trip?.buscaVoo?.origem;
+                        return <><span className="font-medium">Rota:</span> {o || "—"} → {d || "—"}</>;
+                      })()}
+                    </p>
+                    <p>
+                      {(() => {
+                        const o = voltaInfo.origin || trip?.buscaVoo?.volta?.origem || trip?.buscaVoo?.destino;
+                        const hh = voltaInfo.departureHour || voltaHora;
+                        const mm = voltaInfo.departureMinute || voltaMin;
+                        const label = formatLocalTimeWithGMT(
+                          trip.vooVolta?.data || trip.dataFim,
+                          hh,
+                          mm,
+                          o
+                        );
+                        const faixa = voltaInfo.horarioFaixa || voltaFaixa || null;
+                        return <><span className="font-medium">Partida:</span> {label} {o ? `(${o})` : ""}{faixa ? ` — ${faixa}` : ""}</>;
+                      })()}
+                    </p>
+                    <p>
+                      {(() => {
+                        const o = voltaInfo.origin || trip?.buscaVoo?.volta?.origem || trip?.buscaVoo?.destino;
+                        const d = voltaInfo.destination || trip?.buscaVoo?.volta?.destino || trip?.buscaVoo?.origem;
+                        if (!o || !d) return null;
+                        const depH = voltaInfo.departureHour || voltaHora;
+                        const depM = voltaInfo.departureMinute || voltaMin;
+                        const estMin = estimateFlightMinutes(o, d) || 0;
+                        const next = addMinutes(depH, depM, estMin);
+                        const arrLabel = formatConvertedLocalTimeWithGMT(
+                          trip.vooVolta?.data || trip.dataFim,
+                          next.h,
+                          next.m,
+                          o,
+                          d
+                        );
+                        return <><span className="font-medium">Chegada estimada:</span> {arrLabel} ({d})</>;
+                      })()}
+                    </p>
+                  </div>
+                ) : null}
               </div>
             </div>
             <DialogFooter>
@@ -352,7 +492,12 @@ export default function DetalheVooPage() {
       <CardFooter>
         <div className="flex justify-end w-full gap-3">
           <Button variant="secondary" onClick={() => setConfirmResetOpen(true)}>Voltar</Button>
-          <Button onClick={() => router.push(`/acomodacao-picker?tripId=${tripId}`)}>Continuar</Button>
+          <Button
+            onClick={() => router.push(`/acomodacao-picker?tripId=${tripId}`)}
+            title="Escolher hospedagem e gerar links de reserva"
+          >
+            Prosseguir para escolha da acomodação
+          </Button>
         </div>
       </CardFooter>
       {toast && (

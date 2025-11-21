@@ -27,12 +27,6 @@ const sections: NavSection[] = [
     ],
   },
   {
-    title: "Ferramentas",
-    items: [
-      { href: "/consulta-cnpj", label: "Consulta CNPJ" },
-    ],
-  },
-  {
     title: "Institucional",
     items: [
       { href: "/sobre", label: "Sobre a Empresa" },
@@ -104,7 +98,6 @@ export default function Sidebar() {
     if (href.includes("multiplas-cidades")) return <span className={common}>🗺️</span>;
     if (href.includes("entretenimento")) return <span className={common}>🎭</span>;
     if (href.includes("calendario")) return <span className={common}>📅</span>;
-    if (href.includes("consulta-cnpj")) return <span className={common}>🏢</span>;
     return <span className={common}>📄</span>;
   }
 

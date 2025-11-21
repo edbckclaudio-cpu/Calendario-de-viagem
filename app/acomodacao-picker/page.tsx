@@ -58,62 +58,63 @@ export default function AcomodacaoPickerPage() {
         <p className="text-sm text-slate-600">Defina se a viagem terá uma ou múltiplas cidades.</p>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border border-slate-200 p-3 mb-4 text-sm">
-          <p><span className="font-medium">Passageiro:</span> {trip.nomeCompleto}</p>
-          {(() => {
-            const origemIda = trip?.buscaVoo?.ida?.origem || trip?.buscaVoo?.origem;
-            const destinoIda = trip?.buscaVoo?.ida?.destino || trip?.buscaVoo?.destino;
-            const faixaIda = trip?.vooIda?.horarioFaixa || "Sem horário preferido";
-            const codigoIda = trip?.vooIda?.codigoVoo ? ` — Código: ${trip.vooIda.codigoVoo}` : "";
-            const detIda = trip?.vooIda?.horarioDetalhado ? ` — Detalhe: ${trip.vooIda.horarioDetalhado}` : "";
-            const ciaIda = trip?.vooIda?.airline ? ` — Companhia: ${trip.vooIda.airline}` : "";
-            const baseOrigem = trip?.buscaVoo?.ida?.origem || trip?.buscaVoo?.origem;
-            const idaHM = trip?.vooIda?.horarioDetalhado;
-            const horaLabel = idaHM ? formatLocalTimeWithGMT(
-              trip.vooIda?.data || trip.dataInicio,
-              idaHM.split(":")[0],
-              idaHM.split(":")[1],
-              origemIda
-            ) : null;
-            return (
-              <p>
-                <span className="font-medium">Voo IDA:</span> {trip.vooIda?.data?.slice(0,10)} — {origemIda} → {destinoIda} — Classe: {trip.vooIda?.classe} — Faixa: {faixaIda}{codigoIda}{detIda}{ciaIda}{horaLabel ? ` — Horário: ${horaLabel} (${origemIda})` : ""}
-              </p>
-            );
-          })()}
-          {(() => {
-            const origemVolta = trip?.buscaVoo?.volta?.origem || trip?.buscaVoo?.destino;
-            const destinoVolta = trip?.buscaVoo?.volta?.destino || trip?.buscaVoo?.origem;
-            const faixaVolta = trip?.vooVolta?.horarioFaixa || "Sem horário preferido";
-            const codigoVolta = trip?.vooVolta?.codigoVoo ? ` — Código: ${trip.vooVolta.codigoVoo}` : "";
-            const detVolta = trip?.vooVolta?.horarioDetalhado ? ` — Detalhe: ${trip.vooVolta.horarioDetalhado}` : "";
-            const ciaVolta = trip?.vooVolta?.airline ? ` — Companhia: ${trip.vooVolta.airline}` : "";
-            const baseOrigem = trip?.buscaVoo?.ida?.origem || trip?.buscaVoo?.origem;
-            const voltaHM = trip?.vooVolta?.horarioDetalhado;
-            const horaLabel = voltaHM ? formatLocalTimeWithGMT(
-              trip.vooVolta?.data || trip.dataFim,
-              voltaHM.split(":")[0],
-              voltaHM.split(":")[1],
-              origemVolta
-            ) : null;
-            return (
-              <p>
-                <span className="font-medium">Voo VOLTA:</span> {trip.vooVolta?.data?.slice(0,10)} — {origemVolta} → {destinoVolta} — Classe: {trip.vooVolta?.classe} — Faixa: {faixaVolta}{codigoVolta}{detVolta}{ciaVolta}{horaLabel ? ` — Horário: ${horaLabel} (${origemVolta})` : ""}
-              </p>
-            );
-          })()}
-        </div>
-        <div className="grid gap-2">
-          <label className="text-sm text-slate-700">Preencha o nome da cidade, depois clique em Somente esta cidade.</label>
-          <Input value={cidade} onChange={(e) => setCidade(e.target.value)} placeholder="Ex: Paris" />
-        </div>
-        <div className="mt-3">
-          <Button variant="outline" onClick={cidadeUnica}>Somente esta cidade</Button>
-        </div>
-        <div className="mt-4">
-          <p className="text-sm text-slate-700">Mas se nesta viagem você vai visitar e dormir em varias cidades clique no botão abaixo</p>
-          <div className="mt-2">
-            <Button onClick={() => router.push(`/multiplas-cidades?tripId=${tripId}`)}>Esta viagem terá multiplas cidades</Button>
+        <details className="rounded-md border border-slate-200 bg-slate-50 mb-4">
+          <summary className="list-none cursor-pointer px-3 py-2 text-xs font-medium text-slate-600 flex items-center justify-between">
+            <span>Resumo dos voos (verificação)</span>
+            <span className="text-slate-500">▾</span>
+          </summary>
+          <div className="px-3 pb-3">
+            <p className="text-xs text-slate-500"><span className="font-medium">Passageiro:</span> {trip.nomeCompleto}</p>
+            {(() => {
+              const origemIda = trip?.buscaVoo?.ida?.origem || trip?.buscaVoo?.origem;
+              const destinoIda = trip?.buscaVoo?.ida?.destino || trip?.buscaVoo?.destino;
+              const idaHM = trip?.vooIda?.horarioDetalhado;
+              const horaLabel = idaHM ? formatLocalTimeWithGMT(
+                trip.vooIda?.data || trip.dataInicio,
+                idaHM.split(":")[0],
+                idaHM.split(":")[1],
+                origemIda
+              ) : null;
+              return (
+                <p className="text-xs text-slate-500 mt-1">
+                  <span className="font-medium">Ida:</span> {trip.vooIda?.data?.slice(0,10)} — {origemIda} → {destinoIda}{horaLabel ? ` — ${horaLabel} (${origemIda})` : ""}{trip.vooIda?.classe ? ` — Classe: ${trip.vooIda.classe}` : ""}
+                </p>
+              );
+            })()}
+            {(() => {
+              const origemVolta = trip?.buscaVoo?.volta?.origem || trip?.buscaVoo?.destino;
+              const destinoVolta = trip?.buscaVoo?.volta?.destino || trip?.buscaVoo?.origem;
+              const voltaHM = trip?.vooVolta?.horarioDetalhado;
+              const horaLabel = voltaHM ? formatLocalTimeWithGMT(
+                trip.vooVolta?.data || trip.dataFim,
+                voltaHM.split(":")[0],
+                voltaHM.split(":")[1],
+                origemVolta
+              ) : null;
+              return (
+                <p className="text-xs text-slate-500 mt-1">
+                  <span className="font-medium">Volta:</span> {trip.vooVolta?.data?.slice(0,10)} — {origemVolta} → {destinoVolta}{horaLabel ? ` — ${horaLabel} (${origemVolta})` : ""}{trip.vooVolta?.classe ? ` — Classe: ${trip.vooVolta.classe}` : ""}
+                </p>
+              );
+            })()}
+          </div>
+        </details>
+        <div className="mt-2 grid gap-4 md:grid-cols-2">
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
+            <p className="text-sm font-medium text-amber-900">Cidade principal</p>
+            <p className="text-xs text-amber-900/80">Informe a cidade onde ficará hospedado durante toda a viagem. Se a viagem for em uma única cidade, confirme abaixo.</p>
+            <div className="mt-2 grid gap-2">
+              <Input value={cidade} onChange={(e) => setCidade(e.target.value)} placeholder="Ex: Paris" />
+              <div className="flex justify-start">
+                <Button onClick={cidadeUnica}>Hospedar-se apenas nesta cidade</Button>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+            <p className="text-sm text-slate-700">Se sua hospedagem abranger mais de uma cidade nesta viagem, configure abaixo.</p>
+            <div className="mt-2">
+              <Button onClick={() => router.push(`/multiplas-cidades?tripId=${tripId}`)}>Planejar hospedagem em múltiplas cidades</Button>
+            </div>
           </div>
         </div>
         {linksUnicos.length > 0 && (

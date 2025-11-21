@@ -8,7 +8,8 @@ function priceLevelLabel(level?: number): string | undefined {
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const city = (searchParams.get("city") || "").trim();
+  const cityRaw = (searchParams.get("city") || "").trim();
+  const city = cityRaw.split(",")[0].trim();
   const type = (searchParams.get("type") || "atividade").trim();
   const qParam = (searchParams.get("q") || "").trim();
   if (!city) return NextResponse.json({ error: "Missing city" }, { status: 400 });

@@ -30,6 +30,7 @@ export default function BuscadorVooPage() {
   const [openIda, setOpenIda] = useState(false);
   const [openVolta, setOpenVolta] = useState(false);
   const [openRegras, setOpenRegras] = useState(false);
+  const [openVerificaIntl, setOpenVerificaIntl] = useState(false);
   const [openCodigo, setOpenCodigo] = useState(false);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
 
@@ -100,6 +101,38 @@ export default function BuscadorVooPage() {
   };
 
   const isIata = (s: string | undefined | null) => !!s && /^[A-Z]{3}$/.test(s);
+
+  const IATA_COUNTRY: Record<string, string> = {
+    // Brasil
+    GRU: "BR", CGH: "BR", VCP: "BR", GIG: "BR", SDU: "BR", BSB: "BR", CNF: "BR", CWB: "BR", POA: "BR", REC: "BR", FOR: "BR", SSA: "BR", MAO: "BR", PVH: "BR", BEL: "BR", MCP: "BR", PMW: "BR", CGB: "BR", RBR: "BR", NAT: "BR", MCZ: "BR", GYN: "BR", SLZ: "BR", THE: "BR", AJU: "BR", JPA: "BR", IGU: "BR", VIX: "BR", LDB: "BR", RAO: "BR", UDI: "BR", NVT: "BR",
+    // Europa
+    LIS: "PT", OPO: "PT", MAD: "ES", BCN: "ES", CDG: "FR", ORY: "FR", AMS: "NL", FRA: "DE", MUC: "DE", LHR: "GB", LGW: "GB", DUB: "IE", ZRH: "CH", VIE: "AT", BRU: "BE", PRG: "CZ", WAW: "PL", MXP: "IT", FCO: "IT", CIA: "IT",
+    // EUA
+    JFK: "US", EWR: "US", LGA: "US", LAX: "US", SFO: "US", MIA: "US", ORD: "US", DFW: "US", ATL: "US", BOS: "US", SEA: "US", IAD: "US", DCA: "US", PHX: "US", SAN: "US", LAS: "US", DEN: "US", IAH: "US",
+    // Ásia e Oriente Médio (amostra)
+    NRT: "JP", HND: "JP", ICN: "KR", HKG: "HK", SIN: "SG", DEL: "IN", BOM: "IN", KUL: "MY", BKK: "TH", TPE: "TW", MNL: "PH", DOH: "QA", AUH: "AE", DXB: "AE",
+    // América do Sul
+    EZE: "AR", AEP: "AR", SCL: "CL", BOG: "CO", LIM: "PE", MVD: "UY", ASU: "PY", UIO: "EC", GYE: "EC",
+  };
+  const countryOf = (iata?: string): string | undefined => (iata ? IATA_COUNTRY[(iata || "").toUpperCase()] : undefined);
+  const isBR = (iata?: string) => countryOf(iata) === "BR";
+  const isInternationalIda = useMemo(() => {
+    const o = (idaOrigem || origem);
+    const d = (idaDestino || destino);
+    return isIata(o) && isIata(d) && isBR(o) !== isBR(d);
+  }, [idaOrigem, idaDestino, origem, destino]);
+  const isInternationalVolta = useMemo(() => {
+    const o = (voltaOrigem || (idaDestino || destino));
+    const d = (voltaDestino || (idaOrigem || origem));
+    return isIata(o) && isIata(d) && isBR(o) !== isBR(d);
+  }, [voltaOrigem, voltaDestino, idaDestino, idaOrigem, origem, destino]);
+  const visitedCountries = useMemo(() => {
+    const set = new Set<string>();
+    const add = (iata?: string) => { const c = countryOf(iata); if (c) set.add(c); };
+    add(idaDestino || destino);
+    add(voltaOrigem || (idaDestino || destino));
+    return Array.from(set);
+  }, [idaDestino, destino, voltaOrigem]);
 
   const validatePreferencias = (): string[] => {
     const issues: string[] = [];
@@ -424,6 +457,9 @@ export default function BuscadorVooPage() {
           <p className="text-sm">Passageiros: {trip.passageiros?.length || 0}</p>
           <div className="mt-2">
             <Button variant="outline" onClick={() => setOpenRegras(true)}>Verifique as normas para voo de crianças</Button>
+            {(isInternationalIda || isInternationalVolta) ? (
+              <Button className="ml-2 bg-amber-500 text-white hover:bg-amber-600" onClick={() => setOpenVerificaIntl(true)}>Verificações de passaporte, visto e vacinas</Button>
+            ) : null}
           </div>
         </div>
         <div className="mb-4 text-sm text-slate-700">
@@ -657,11 +693,59 @@ export default function BuscadorVooPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        <Dialog open={openVerificaIntl} onOpenChange={setOpenVerificaIntl}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Verificações para viagem internacional</DialogTitle>
+              <DialogDescription>Confirme regras específicas junto às autoridades e à companhia aérea.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-2 text-sm text-slate-700">
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-2">
+                <p className="font-medium">Passaporte</p>
+                <p>Validade recomendada mínima de 6 meses após o retorno.</p>
+              </div>
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-2">
+                <p className="font-medium">Visto</p>
+                {(() => {
+                  const links: Array<{label: string; url: string}> = [];
+                  visitedCountries.forEach((cc) => {
+                    if (["FR","IT","ES","PT","DE","NL","BE","AT","CH","CZ","PL"].includes(cc)) {
+                      links.push({ label: "Visto Schengen (informações gerais)", url: "https://visa.vfsglobal.com/one-pager/schengen-visa/pt" });
+                    }
+                    if (cc === "GB") links.push({ label: "Regras de visto Reino Unido", url: "https://www.gov.uk/standard-visitor-visa" });
+                    if (cc === "US") links.push({ label: "Visto EUA (informações oficiais)", url: "https://travel.state.gov/content/travel/en/us-visas.html" });
+                  });
+                  return (
+                    <ul className="list-disc ml-6">
+                      {links.length ? links.map((l) => (
+                        <li key={l.url}><a className="text-blue-700 underline" href={l.url} target="_blank" rel="noreferrer">{l.label}</a></li>
+                      )) : (
+                        <li>Verifique exigências no site oficial do país de destino e no Itamaraty.</li>
+                      )}
+                    </ul>
+                  );
+                })()}
+              </div>
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-2">
+                <p className="font-medium">Vacinas</p>
+                <p>Alguns países exigem ou recomendam vacina de Febre Amarela. Consulte a rede de saúde e a Anvisa.</p>
+                <a className="text-blue-700 underline" href="https://www.gov.br/anvisa/pt-br/assuntos/saude-do-viajante" target="_blank" rel="noreferrer">Saúde do Viajante — Anvisa</a>
+              </div>
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-2">
+                <p className="font-medium">Seguro viagem</p>
+                <p>Para área Schengen, recomenda-se cobertura mínima de €30.000 para despesas médicas e repatriação.</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setOpenVerificaIntl(false)}>Fechar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
       <CardFooter>
         <div className="flex justify-end w-full gap-3">
           <Button variant="secondary" onClick={() => setConfirmResetOpen(true)}>Voltar</Button>
-          <Button onClick={continuarDetalhe} disabled={!pronto}>Prosseguir para detalhes do voo</Button>
+          <Button onClick={continuarDetalhe} disabled={!pronto} title="Informar horários precisos e, se desejar, o código do voo">Preencher detalhes do voo</Button>
         </div>
       </CardFooter>
       {toast && (

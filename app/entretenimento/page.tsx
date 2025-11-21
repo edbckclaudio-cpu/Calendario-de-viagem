@@ -99,6 +99,16 @@ export default function EntretenimentoPage() {
       { nome: "British Museum highlights", detalhes: "Grátis — Tour de 1h" },
       { nome: "Tower of London", detalhes: "£33 — Crown Jewels", url: "https://www.hrp.org.uk/tower-of-london/visit/buy-tickets/" },
     ],
+    londres: [
+      { nome: "London Eye", detalhes: "£25 — Fast track disponível", url: "https://www.londoneye.com/tickets-and-prices/" },
+      { nome: "British Museum highlights", detalhes: "Grátis — Tour de 1h" },
+      { nome: "Tower of London", detalhes: "£33 — Crown Jewels", url: "https://www.hrp.org.uk/tower-of-london/visit/buy-tickets/" },
+    ],
+    milao: [
+      { nome: "Duomo di Milano — subida ao terraço", detalhes: "€12–€17 — Vista da cidade", url: "https://www.duomomilano.it/" },
+      { nome: "Pinacoteca di Brera", detalhes: "€12 — Arte clássica", url: "https://pinacotecabrera.org/en/" },
+      { nome: "Passeio Navigli", detalhes: "Bares e restaurantes à beira dos canais" },
+    ],
     "sao paulo": [
       { nome: "Avenida Paulista cultural tour", detalhes: "R$ — MASP, IMS, parques" },
       { nome: "Parque Ibirapuera bike", detalhes: "R$ — 2h passeio" },
@@ -106,6 +116,54 @@ export default function EntretenimentoPage() {
     "rio de janeiro": [
       { nome: "Pão de Açúcar + Bondinho", detalhes: "R$ — Vista da cidade", url: "https://www.bondinho.com.br/" },
       { nome: "Cristo Redentor — Trem do Corcovado", detalhes: "R$ — Reserve com antecedência", url: "https://www.tremdocorcovado.rio/" },
+    ],
+    lisboa: [
+      { nome: "Torre de Belém", detalhes: "€ — Patrimônio histórico", url: "https://www.torrebelem.gov.pt/" },
+      { nome: "Mosteiro dos Jerónimos", detalhes: "€ — Arquitetura manuelina", url: "https://www.mosteirojeronimos.gov.pt/" },
+      { nome: "Elevador de Santa Justa", detalhes: "€ — Vista da Baixa" },
+      { nome: "Walking tour por Alfama", detalhes: "Ruas históricas e miradouros" },
+    ],
+    porto: [
+      { nome: "Ribeira + Ponte Dom Luís I", detalhes: "Passeio a pé — vista do Douro" },
+      { nome: "Livraria Lello", detalhes: "€ — Ingresso no site", url: "https://www.livrarialello.pt/" },
+      { nome: "Caves de Vinho do Porto", detalhes: "Degustação — Vila Nova de Gaia" },
+      { nome: "Caminhada em Foz do Douro", detalhes: "Pôr do sol e orla marítima" },
+    ],
+    barcelona: [
+      { nome: "Sagrada Família", detalhes: "€ — Horário marcado", url: "https://sagradafamilia.org/" },
+      { nome: "Parc Güell", detalhes: "€ — Vista da cidade", url: "https://parkguell.barcelona/en/" },
+      { nome: "Casa Batlló", detalhes: "€ — Modernismo catalão", url: "https://www.casabatllo.es/en/" },
+      { nome: "Teleférico de Montjuïc", detalhes: "Vista panorâmica da cidade" },
+    ],
+    madrid: [
+      { nome: "Museu do Prado", detalhes: "€ — Arte clássica", url: "https://www.museodelprado.es/en" },
+      { nome: "Palácio Real", detalhes: "€ — Salões e jardins", url: "https://www.patrimonionacional.es/en/real-sitio/palacio-real-de-madrid" },
+      { nome: "Puerta del Sol", detalhes: "Centro — Km 0" },
+    ],
+    amsterda: [
+      { nome: "Museu Van Gogh", detalhes: "€ — Reserva antecipada", url: "https://www.vangoghmuseum.nl/en" },
+      { nome: "Passeio de barco nos canais", detalhes: "1h — Várias empresas" },
+      { nome: "Rijksmuseum", detalhes: "€ — Arte neerlandesa", url: "https://www.rijksmuseum.nl/en" },
+    ],
+    berlim: [
+      { nome: "Portão de Brandemburgo", detalhes: "Marco histórico" },
+      { nome: "Ilha dos Museus", detalhes: "Conjunto de museus" },
+      { nome: "East Side Gallery", detalhes: "Muro de Berlim — grafites" },
+    ],
+    viena: [
+      { nome: "Palácio Schönbrunn", detalhes: "€ — Jardins e museu", url: "https://www.schoenbrunn.at/en/" },
+      { nome: "Ópera Estatal de Viena", detalhes: "€ — Tours e espetáculos", url: "https://www.wiener-staatsoper.at/en/" },
+      { nome: "Catedral de Santo Estevão", detalhes: "Grátis/€ — Torre e catacumbas", url: "https://www.stephanskirche.at/" },
+    ],
+    praga: [
+      { nome: "Castelo de Praga", detalhes: "€ — Complexo histórico", url: "https://www.hrad.cz/en" },
+      { nome: "Ponte Carlos", detalhes: "Passeio — vista do Vltava" },
+      { nome: "Relógio Astronómico", detalhes: "Praça da Cidade Velha" },
+    ],
+    "nova york": [
+      { nome: "Times Square", detalhes: "Luzes e Broadway" },
+      { nome: "Central Park", detalhes: "Passeio e bike" },
+      { nome: "Top of the Rock", detalhes: "Vista panorâmica", url: "https://www.topoftherocknyc.com/" },
     ],
   };
 
@@ -129,9 +187,84 @@ export default function EntretenimentoPage() {
       { nome: "Gastro pub", detalhes: "Fish & chips, ales" },
       { nome: "Indian curry house", detalhes: "Soho/Brick Lane" },
     ],
+    londres: [
+      { nome: "Gastro pub", detalhes: "Fish & chips, ales" },
+      { nome: "Indian curry house", detalhes: "Soho/Brick Lane" },
+    ],
+    milao: [
+      { nome: "Trattoria milanesa", detalhes: "Cotoletta, risotto alla milanese" },
+      { nome: "Pasticceria", detalhes: "Doces locais" },
+    ],
+    lisboa: [
+      { nome: "Tasca portuguesa", detalhes: "Bacalhau, caldo verde" },
+      { nome: "Marisqueira", detalhes: "Peixes e frutos do mar" },
+      { nome: "Pastéis de Belém", detalhes: "Clássico doce" },
+      { nome: "Casa de Fados em Alfama", detalhes: "Experiência tradicional" },
+    ],
+    porto: [
+      { nome: "Francesinha", detalhes: "Sanduíche típico" },
+      { nome: "Casa de Fados", detalhes: "Experiência cultural" },
+      { nome: "Adega", detalhes: "Vinhos do Douro" },
+      { nome: "Marisqueira na Foz", detalhes: "Vista mar e frutos do mar" },
+    ],
+    barcelona: [
+      { nome: "Bar de tapas", detalhes: "Variedade de petiscos" },
+      { nome: "Paella", detalhes: "Arroz — frutos do mar ou mista" },
+      { nome: "Churreria", detalhes: "Churros e chocolate" },
+      { nome: "Restaurante em Montjuïc", detalhes: "Vista e menu mediterrâneo" },
+    ],
+    madrid: [
+      { nome: "Mercado de San Miguel", detalhes: "Tapas e vinhos" },
+      { nome: "Churreria", detalhes: "Churros com chocolate" },
+      { nome: "Cocido madrileño", detalhes: "Ensopado tradicional" },
+    ],
+    amsterda: [
+      { nome: "Poffertjes/Pancakes", detalhes: "Doces holandeses" },
+      { nome: "Haring", detalhes: "Arenque — típico" },
+      { nome: "Rijsttafel indonésio", detalhes: "Influência culinária local" },
+    ],
+    berlim: [
+      { nome: "Currywurst", detalhes: "Salsicha com molho curry" },
+      { nome: "Biergarten", detalhes: "Cerveja e petiscos" },
+      { nome: "Döner kebab", detalhes: "Rápido e popular" },
+    ],
+    viena: [
+      { nome: "Café vienense", detalhes: "Tortas e cafés" },
+      { nome: "Schnitzel", detalhes: "Clássico austríaco" },
+      { nome: "Heuriger", detalhes: "Taberna de vinho" },
+    ],
+    praga: [
+      { nome: "Hospoda tcheca", detalhes: "Cerveja e pratos locais" },
+      { nome: "Goulash", detalhes: "Ensopado com pão" },
+      { nome: "Trdelník", detalhes: "Doce tradicional" },
+    ],
+    "nova york": [
+      { nome: "Deli", detalhes: "Sanduíches clássicos" },
+      { nome: "Slice de pizza", detalhes: "Estilo NY" },
+      { nome: "Steakhouse", detalhes: "Carnes premium" },
+    ],
   };
 
-  const normalizeCity = (n?: string) => (n || "").toLowerCase();
+  const normalizeCity = (n?: string) => {
+    const raw = (n || "").toLowerCase();
+    const base = raw.split(",")[0].trim();
+    const noAcc = base.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+  const map: Record<string, string> = {
+      "grande londres": "londres",
+      "london": "londres",
+      "milano": "milao",
+      "milan": "milao",
+      "lisbon": "lisboa",
+      "oporto": "porto",
+      "amsterdam": "amsterda",
+      "berlin": "berlim",
+      "vienna": "viena",
+      "prague": "praga",
+      "new york": "nova york",
+      "nyc": "nova york",
+  };
+    return map[noAcc] || noAcc;
+  };
   const ensureAtLeastTen = (primary: Sugestao[] | null, fallback: Sugestao[]): Sugestao[] => {
     const base = Array.isArray(primary) ? [...primary] : [];
     const names = new Set(base.map((s) => s.nome));
@@ -484,7 +617,7 @@ export default function EntretenimentoPage() {
       <CardFooter>
         <div className="flex justify-end w-full gap-3">
           <Button variant="secondary" onClick={() => router.push(`/acomodacao-detalhe?tripId=${tripId}`)}>Voltar</Button>
-          <Button onClick={() => router.push(`/calendario?tripId=${tripId}`)}>Seguir</Button>
+          <Button onClick={() => router.push(`/calendario?tripId=${tripId}`)}>Ir para Calendário Final</Button>
         </div>
       </CardFooter>
     </Card>
