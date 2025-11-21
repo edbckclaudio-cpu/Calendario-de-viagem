@@ -65,7 +65,7 @@ export default function DetalheVooPage() {
   function prefillByCodigo(tipo: "ida" | "volta") {
     if (!trip) return;
     const isIda = tipo === "ida";
-    const code = isIda ? idaCodigo : voltaCodigo;
+    const code = normalizeFlightCode(isIda ? idaCodigo : voltaCodigo);
     const date = (isIda ? trip.vooIda?.data : trip.vooVolta?.data) || (isIda ? trip.dataInicio : trip.dataFim);
     if (!code || !date) {
       showToast("Informe o código e certifique-se que a data existe.", "error");
@@ -114,8 +114,9 @@ export default function DetalheVooPage() {
   }
 
   function normalizeFlightCode(raw: string): string {
-    const s = String(raw || "").toUpperCase().replace(/\s|-/g, "");
-    return s;
+    return String(raw || "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
   }
   function isValidFlightCode(code: string): boolean {
     return /^[A-Z]{2,3}\d{1,4}$/.test(code);
