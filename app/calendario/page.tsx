@@ -515,6 +515,9 @@ export default function CalendarioPage() {
       if (e.tipo.includes("Check-in") || e.tipo.includes("Check-out")) {
         const cidadeObj = (trip.cidadesAcomodacao || []).find((c: any) => c.nome === e.local);
         addAccommodationLinks(cidadeObj?.nome || e.local, cidadeObj?.dataChegada, cidadeObj?.dataSaida);
+        if (cidadeObj?.hotelNome) descParts.push(`Hotel/Acomodação: ${cidadeObj.hotelNome}`);
+        if (cidadeObj?.endereco) descParts.push(`Endereço: ${cidadeObj.endereco}`);
+        if (cidadeObj?.endereco || cidadeObj?.nome) addGmapsSearchLink(cidadeObj?.endereco, cidadeObj?.nome);
         mapsUrlForEvent = mapsUrlForEvent || `${originBase}/acomodacao-detalhe?tripId=${encodeURIComponent(tripId || "")}`;
       }
 
@@ -720,6 +723,21 @@ export default function CalendarioPage() {
                         {String(e.url).includes("google.com") ? "Ver no Google Maps" : "Abrir site de reserva"}
                       </a>
                     ) : null}
+                    {e.tipo.includes("Check-in") ? (
+                      <div className="mt-1 text-xs text-slate-600">
+                        {(() => {
+                          const c = (trip?.cidadesAcomodacao || []).find((x: any) => x.nome === e.local);
+                          const nome = c?.hotelNome || null;
+                          const endereco = c?.endereco || null;
+                          return (
+                            <>
+                              {nome ? <span className="mr-2">Hotel/Acomodação: {nome}</span> : null}
+                              {endereco ? <span>Endereço: {endereco}</span> : <span>Endereço: (não informado)</span>}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    ) : null}
                   </div>
                   {e.source?.kind === "atividade" && editing?.idx !== e.source.idx ? (
                     <div className="flex gap-2">
@@ -777,7 +795,8 @@ export default function CalendarioPage() {
                     {c ? (
                       <>
                         <p><span className="font-medium">Cidade:</span> {c.nome}</p>
-                        <p><span className="font-medium">Acomodação:</span> {(c.endereco || c.hotelNome || "(não informado)")}</p>
+                        {c.hotelNome ? <p><span className="font-medium">Hotel/Acomodação:</span> {c.hotelNome}</p> : null}
+                        <p><span className="font-medium">Endereço:</span> {c.endereco || "(não informado)"}</p>
                         {c.telefone ? <p><span className="font-medium">Telefone:</span> {c.telefone}</p> : null}
                         {c.anfitriao ? <p><span className="font-medium">Anfitrião:</span> {c.anfitriao}</p> : null}
                       </>
