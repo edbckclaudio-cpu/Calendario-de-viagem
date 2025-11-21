@@ -119,7 +119,7 @@ export default function DetalheVooPage() {
       .replace(/[^A-Z0-9]/g, "");
   }
   function isValidFlightCode(code: string): boolean {
-    return /^[A-Z]{2,3}\d{1,4}$/.test(code);
+    return /^[A-Z]{2,3}\d{1,4}[A-Z]?$/.test(code);
   }
   function isValidHour(h?: string): boolean {
     return !!h && /^\d{2}$/.test(h) && Number(h) >= 0 && Number(h) <= 24;
@@ -300,22 +300,25 @@ export default function DetalheVooPage() {
               <div>
                 <p className="font-medium">Voo IDA</p>
                 <p className="text-sm text-slate-600">Data: {trip.vooIda?.data?.slice(0,10)}</p>
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   <Select value={idaHora} onValueChange={setIdaHora}>
-                    <SelectTrigger className="w-24"><SelectValue placeholder="Hora" /></SelectTrigger>
+                    <SelectTrigger className="w-24 sm:w-24 w-20"><SelectValue placeholder="Hora" /></SelectTrigger>
                     <SelectContent>{hours().map((h) => (<SelectItem key={h} value={h}>{h}</SelectItem>))}</SelectContent>
                   </Select>
                   <Select value={idaMin} onValueChange={setIdaMin}>
-                    <SelectTrigger className="w-24"><SelectValue placeholder="Min" /></SelectTrigger>
+                    <SelectTrigger className="w-24 sm:w-24 w-20"><SelectValue placeholder="Min" /></SelectTrigger>
                     <SelectContent>{minutesForHour(idaHora).map((m) => (<SelectItem key={m} value={m}>{m}</SelectItem>))}</SelectContent>
                   </Select>
                   <Input
-                    className="flex-1"
+                    className="flex-1 w-full min-w-[180px] sm:min-w-[220px] text-base"
                     placeholder="Código do Voo (opcional)"
                     value={idaCodigo}
                     onChange={(e) => { setIdaCodigo(e.target.value); setIdaCodeError(null); }}
                     onBlur={() => prefillByCodigo("ida")}
                     onKeyDown={(e) => { if (e.key === "Enter") prefillByCodigo("ida"); }}
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    inputMode="text"
                   />
                 {idaCodeError ? <p className="text-xs text-red-600">{idaCodeError}</p> : <p className="text-xs text-slate-500">Ex.: AV86, KL792</p>}
                 </div>
@@ -393,22 +396,25 @@ export default function DetalheVooPage() {
               <div>
                 <p className="font-medium">Voo VOLTA</p>
                 <p className="text-sm text-slate-600">Data: {trip.vooVolta?.data?.slice(0,10)}</p>
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   <Select value={voltaHora} onValueChange={setVoltaHora}>
-                    <SelectTrigger className="w-24"><SelectValue placeholder="Hora" /></SelectTrigger>
+                    <SelectTrigger className="w-24 sm:w-24 w-20"><SelectValue placeholder="Hora" /></SelectTrigger>
                     <SelectContent>{hours().map((h) => (<SelectItem key={h} value={h}>{h}</SelectItem>))}</SelectContent>
                   </Select>
                   <Select value={voltaMin} onValueChange={setVoltaMin}>
-                    <SelectTrigger className="w-24"><SelectValue placeholder="Min" /></SelectTrigger>
+                    <SelectTrigger className="w-24 sm:w-24 w-20"><SelectValue placeholder="Min" /></SelectTrigger>
                     <SelectContent>{minutesForHour(voltaHora).map((m) => (<SelectItem key={m} value={m}>{m}</SelectItem>))}</SelectContent>
                   </Select>
                   <Input
-                    className="flex-1"
+                    className="flex-1 w-full min-w-[180px] sm:min-w-[220px] text-base"
                     placeholder="Código do Voo (opcional)"
                     value={voltaCodigo}
                     onChange={(e) => { setVoltaCodigo(e.target.value); setVoltaCodeError(null); }}
                     onBlur={() => prefillByCodigo("volta")}
                     onKeyDown={(e) => { if (e.key === "Enter") prefillByCodigo("volta"); }}
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    inputMode="text"
                   />
                 {voltaCodeError ? <p className="text-xs text-red-600">{voltaCodeError}</p> : <p className="text-xs text-slate-500">Ex.: AV86, KL792</p>}
                 </div>
