@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
+import { Card, CardHeader, CardContent, CardFooter, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { seedAdmin, login, register, validatePassword, getUsers, getCurrentUser } from "@/lib/auth-local";
 import { listTripsByEmail } from "@/lib/firebase";
@@ -123,15 +124,23 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-6 py-12">
-      <p className="text-slate-600 dark:text-slate-300 text-center max-w-xl">
-        Para acessar as etapas da viagem, faça login com email e senha. Se não tiver conta, crie uma.
-      </p>
-      <div className="flex items-center gap-3">
-        <Button onClick={() => setLoginOpen(true)} size="lg">Entrar</Button>
-        <Button onClick={openRegister} variant="secondary" size="lg">Criar conta</Button>
-      </div>
-
+    <div className="min-h-[60vh] flex items-center justify-center px-4">
+      <Card className="w-full max-w-xl">
+        <CardHeader>
+          <CardTitle>TRAE — Planejamento de Viagem</CardTitle>
+          <p className="text-sm text-slate-600">Acesse sua conta para organizar voos, acomodação e calendário.</p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={() => setLoginOpen(true)} size="lg">Entrar</Button>
+            <Button onClick={openRegister} variant="outline" size="lg">Criar conta</Button>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <p className="text-xs text-slate-500">Você pode criar uma conta e continuar de onde parou em qualquer dispositivo.</p>
+        </CardFooter>
+      </Card>
+      
       {/* Login */}
       <Dialog open={loginOpen} onOpenChange={setLoginOpen}>
         <DialogContent>
