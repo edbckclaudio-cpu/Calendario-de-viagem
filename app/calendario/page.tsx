@@ -86,7 +86,7 @@ export default function CalendarioPage() {
       const data = a.data || cidadeInfo?.dataChegada;
       if (!data) return;
       const hora = a.hora || undefined;
-      const tipo = a.tipo === "restaurante" ? "Reserva" : "Atividade";
+      const tipo = a.tipo === "restaurante" ? "Reserva" : a.tipo === "transporte" ? "Transporte" : "Atividade";
       const local = a.nome || a.cidade;
       const partes: string[] = [];
       if (a.cidade) partes.push(a.cidade);
@@ -97,10 +97,21 @@ export default function CalendarioPage() {
       ev.push({ data, hora, tipo, local, descricao, url: a.url, source: { kind: "atividade", idx } });
     });
     return ev.sort((a, b) => {
+      if (a.tipo === "Voo IDA" && b.tipo !== "Voo IDA") return -1;
+      if (b.tipo === "Voo IDA" && a.tipo !== "Voo IDA") return 1;
       const d = a.data.localeCompare(b.data);
       if (d !== 0) return d;
-      const ha = a.hora || (a.tipo.includes("Check-in") ? "00:00" : a.tipo.includes("Check-out") ? "23:59" : "99:99");
-      const hb = b.hora || (b.tipo.includes("Check-in") ? "00:00" : b.tipo.includes("Check-out") ? "23:59" : "99:99");
+      const rank = (e: Evento) => {
+        if (e.tipo === "Voo IDA") return 0;
+        if (e.tipo.includes("Check-out")) return 1;
+        if (e.tipo === "Transporte") return 2;
+        if (e.tipo.includes("Check-in")) return 3;
+        return 4;
+      };
+      const r = rank(a) - rank(b);
+      if (r !== 0) return r;
+      const ha = a.hora || (a.tipo.includes("Check-out") ? "08:00" : a.tipo === "Transporte" ? "12:00" : a.tipo.includes("Check-in") ? "16:00" : "99:99");
+      const hb = b.hora || (b.tipo.includes("Check-out") ? "08:00" : b.tipo === "Transporte" ? "12:00" : b.tipo.includes("Check-in") ? "16:00" : "99:99");
       return ha.localeCompare(hb);
     });
   }, [trip]);
@@ -700,44 +711,9 @@ export default function CalendarioPage() {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl font-semibold">Calendário</h2>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-600">
-                {viewDate ? `Dia selecionado: ${new Date(viewDate).toISOString().slice(0,10)}` : "Selecione um dia"}
-              </span>
-              <Button variant="secondary" onClick={handleSalvarViagem}>Salvar esta viagem</Button>
-              <Button onClick={handleEnviarEmail}>Enviar calendário por email</Button>
-              <Button variant="outline" onClick={() => router.push(`/acomodacao-detalhe?tripId=${tripId}`)}>Modificar Acomodação</Button>
-              <Button onClick={() => router.push(`/entretenimento?tripId=${tripId}`)}>Gerenciar Entretenimento</Button>
-            </div>
-          </div>
-          <div className="mt-2">
-            <Button onClick={handleSalvarNoCalendarioDispositivo}>
-              Salvar no calendário do seu dispositivo (inclui horários e deslocamentos)
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Calendar
-            value={viewDate}
-            onChange={(d) => {
-              setViewDate(d);
-              if (d) setPopupOpen(true);
-            }}
-            disabled={trip?.dataInicio && trip?.dataFim ? [
-              { before: new Date(trip.dataInicio) },
-              { after: new Date(trip.dataFim) },
-            ] : undefined}
-          />
-          <p className="mt-2 text-sm text-slate-600">Início: {trip.dataInicio?.slice(0,10)} — Fim: {trip.dataFim?.slice(0,10)}</p>
-        </CardContent>
-      </Card>
-
-      <Card>
+    <div className="grid gap-6 md:grid-cols-3">
+      {/* Lista Cronológica — agora mais larga e à esquerda */}
+      <Card className="md:col-span-2">
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-xl font-semibold">Lista Cronológica</h2>
@@ -745,7 +721,7 @@ export default function CalendarioPage() {
               <span className="text-xs text-slate-600">
                 {viewDate ? `Dia selecionado: ${new Date(viewDate).toISOString().slice(0,10)}` : "Selecione um dia no calendário"}
               </span>
-              <Button size="sm" onClick={() => {
+              <Button size="sm" variant="secondary" onClick={() => {
                 if (!viewDate) { showToast("Selecione um dia no calendário.", "info"); return; }
                 addEntretenimentoParaDia();
               }} disabled={!viewDate}>Adicionar Entretenimento</Button>
@@ -791,13 +767,150 @@ export default function CalendarioPage() {
                   </div>
                   {e.source?.kind === "atividade" && editing?.idx !== e.source.idx ? (
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => removeAtividade(e.source!.idx)}>Remover Entretenimento</Button>
-                      <Button onClick={() => beginEdit(e.source!.idx)}>Editar Entretenimento</Button>
+                      <Button variant="secondary" onClick={() => removeAtividade(e.source!.idx)}>Remover Entretenimento</Button>
+                      <Button variant="outline" onClick={() => beginEdit(e.source!.idx)}>Editar Entretenimento</Button>
                     </div>
                   ) : null}
                   {e.tipo.includes("Check-in") ? (
                     <div className="flex gap-2">
-                      <Button onClick={() => router.push(`/acomodacao-detalhe?tripId=${tripId}`)}>Alterar Acomodação</Button>
+                      <Button variant="outline" onClick={() => router.push(`/acomodacao-detalhe?tripId=${tripId}`)}>Alterar Acomodação</Button>
+                    </div>
+                  ) : null}
+                </div>
+                {e.source?.kind === "atividade" && editing?.idx === e.source.idx ? (
+                  <div className="mt-3 grid gap-3">
+                    <div className="grid gap-2 md:grid-cols-2">
+                      <div className="grid gap-1">
+                        <label className="text-sm">Dia</label>
+                        <Input type="date" value={editing.data} onChange={(ev) => setEditing({ ...editing!, data: ev.target.value })} />
+                      </div>
+                      <div className="grid gap-1">
+                        <label className="text-sm">Hora</label>
+                        <Input type="time" value={editing.hora || ""} onChange={(ev) => setEditing({ ...editing!, hora: ev.target.value })} />
+                      </div>
+                    </div>
+                    <div className="grid gap-2 md:grid-cols-2">
+                      <div className="grid gap-1">
+                        <label className="text-sm">Nome da atração</label>
+                        <Input value={editing.nome || ""} onChange={(ev) => setEditing({ ...editing!, nome: ev.target.value })} />
+                      </div>
+                      <div className="grid gap-1">
+                        <label className="text-sm">ID da reserva (opcional)</label>
+                        <Input value={editing.reservaId || ""} onChange={(ev) => setEditing({ ...editing!, reservaId: ev.target.value })} />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={saveEdit}>Salvar</Button>
+                      <Button variant="secondary" onClick={cancelEdit}>Cancelar</Button>
+                    </div>
+                  </div>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+
+      {/* Calendário — agora mais estreito e à direita */}
+      <Card className="md:col-span-1">
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold">Calendário</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-600">
+                {viewDate ? `Dia selecionado: ${new Date(viewDate).toISOString().slice(0,10)}` : "Selecione um dia"}
+              </span>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Calendar
+            value={viewDate}
+            onChange={(d) => {
+              setViewDate(d);
+              if (d) setPopupOpen(true);
+            }}
+            defaultMonth={trip?.dataInicio ? new Date(trip.dataInicio) : undefined}
+            disabled={trip?.dataInicio && trip?.dataFim ? [
+              { before: new Date(trip.dataInicio) },
+              { after: new Date(trip.dataFim) },
+            ] : undefined}
+            aside={<p>Clique em uma data no calendário para visualizar a agenda completa daquele dia na Lista Cronológica ao lado.</p>}
+          />
+          <p className="mt-2 text-sm text-slate-600">Início: {trip.dataInicio?.slice(0,10)} — Fim: {trip.dataFim?.slice(0,10)}</p>
+          <div className="mt-4 grid gap-2">
+            <Button variant="outline" onClick={handleSalvarViagem}>Salvar esta viagem</Button>
+            <Button variant="outline" onClick={handleEnviarEmail}>Enviar calendário por email</Button>
+            <Button variant="outline" onClick={() => router.push(`/acomodacao-detalhe?tripId=${tripId}`)}>Modificar Acomodação</Button>
+            <Button variant="outline" onClick={() => router.push(`/entretenimento?tripId=${tripId}`)}>Gerenciar Entretenimento</Button>
+            <Button variant="secondary" onClick={handleSalvarNoCalendarioDispositivo}>
+              Salvar no calendário do seu dispositivo (inclui horários e deslocamentos)
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold">Lista Cronológica</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-600">
+                {viewDate ? `Dia selecionado: ${new Date(viewDate).toISOString().slice(0,10)}` : "Selecione um dia no calendário"}
+              </span>
+              <Button size="sm" variant="secondary" onClick={() => {
+                if (!viewDate) { showToast("Selecione um dia no calendário.", "info"); return; }
+                addEntretenimentoParaDia();
+              }} disabled={!viewDate}>Adicionar Entretenimento</Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ul className="text-sm grid gap-2">
+            {eventos.map((e, i) => (
+              <li key={i} className="rounded-md border border-slate-200 p-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <span className="font-medium">{e.data?.slice(0,10)}</span>
+                    {e.hora ? ` - ${e.hora}` : ""} — {e.tipo}
+                    {e.local ? ` — ${e.local}` : ""}
+                    {e.descricao ? ` — ${e.descricao}` : ""}
+                    {e.url ? (
+                      <a
+                        href={e.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 text-blue-600 underline"
+                        title={String(e.url).includes("google.com") ? "Ver no Google Maps" : "Abrir site de reserva"}
+                      >
+                        {String(e.url).includes("google.com") ? "Ver no Google Maps" : "Abrir site de reserva"}
+                      </a>
+                    ) : null}
+                    {e.tipo.includes("Check-in") ? (
+                      <div className="mt-1 text-xs text-slate-600">
+                        {(() => {
+                          const c = (trip?.cidadesAcomodacao || []).find((x: any) => x.nome === e.local);
+                          const nome = c?.hotelNome || null;
+                          const endereco = c?.endereco || null;
+                          return (
+                            <>
+                              {nome ? <span className="mr-2">Hotel/Acomodação: {nome}</span> : null}
+                              {endereco ? <span>Endereço: {endereco}</span> : <span>Endereço: (não informado)</span>}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    ) : null}
+                  </div>
+                  {e.source?.kind === "atividade" && editing?.idx !== e.source.idx ? (
+                    <div className="flex gap-2">
+                      <Button variant="secondary" onClick={() => removeAtividade(e.source!.idx)}>Remover Entretenimento</Button>
+                      <Button variant="outline" onClick={() => beginEdit(e.source!.idx)}>Editar Entretenimento</Button>
+                    </div>
+                  ) : null}
+                  {e.tipo.includes("Check-in") ? (
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => router.push(`/acomodacao-detalhe?tripId=${tripId}`)}>Alterar Acomodação</Button>
                     </div>
                   ) : null}
                 </div>
