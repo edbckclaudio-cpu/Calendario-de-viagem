@@ -11,6 +11,7 @@ export default function UserAuthControls() {
   const pathname = usePathname();
   const [email, setEmail] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
+  const [migMsg, setMigMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const u = getCurrentUser();
@@ -25,7 +26,9 @@ export default function UserAuthControls() {
     (async () => {
       try {
         const user = await ensureAuth(email);
-        await migrateAppId(user?.uid || "local-dev-user", email);
+        const res = await migrateAppId(user?.uid || "local-dev-user", email);
+        setMigMsg(`Migração concluída: ${res.tripsMigrated} viagens, ${res.emailIndexMigrated} índices`);
+        setTimeout(() => setMigMsg(null), 4000);
         if (typeof window !== "undefined") sessionStorage.setItem(onceKey, "1");
       } catch {}
     })();
@@ -52,6 +55,9 @@ export default function UserAuthControls() {
       <Button variant="secondary" size="sm" onClick={handleLogout}>Sair</Button>
       {showToast && (
         <Toast message="Você saiu" type="success" position="top-right" onClose={() => setShowToast(false)} />
+      )}
+      {migMsg && (
+        <Toast message={migMsg} type="success" position="top-right" onClose={() => setMigMsg(null)} />
       )}
     </div>
   );
