@@ -42,7 +42,8 @@ export async function ensureAuth(email?: string) {
   }
 }
 
-export const APP_ID = "trae";
+export const APP_ID = "TRAE-trip";
+const OLD_APP_ID = "TRAE-viagem";
 
 export function tripPath(userId: string, tripId: string) {
   return `artifacts/${APP_ID}/users/${userId}/viagens/${tripId}`;
@@ -155,4 +156,31 @@ export async function removeTrip(userId: string, email: string, tripId: string) 
     const next = arr.filter((x: any) => x.tripId !== tripId);
     localStorage.setItem(keyIdx, JSON.stringify(next));
   }
+}
+
+export async function migrateAppId(userId: string, email?: string): Promise<{ tripsMigrated: number; emailIndexMigrated: number }> {
+  if (!(firebaseEnabled && db)) {
+    return { tripsMigrated: 0, emailIndexMigrated: 0 };
+  }
+  const oldTripsCol = collection(db, `artifacts/${OLD_APP_ID}/users/${userId}/viagens`);
+  const oldTripSnaps = await getDocs(oldTripsCol);
+  let tripsMigrated = 0;
+  for (const snap of oldTripSnaps.docs) {
+    const data = snap.data();
+    const newRef = doc(db, `artifacts/${APP_ID}/users/${userId}/viagens/${snap.id}`);
+    await setDoc(newRef, data, { merge: true });
+    tripsMigrated++;
+  }
+  let emailIndexMigrated = 0;
+  if (email) {
+    const oldEmailCol = collection(db, `artifacts/${OLD_APP_ID}/emails/${encodeURIComponent(email)}/viagens`);
+    const oldEmailSnaps = await getDocs(oldEmailCol);
+    for (const snap of oldEmailSnaps.docs) {
+      const data = snap.data();
+      const newRef = doc(db, `artifacts/${APP_ID}/emails/${encodeURIComponent(email)}/viagens/${snap.id}`);
+      await setDoc(newRef, data, { merge: true });
+      emailIndexMigrated++;
+    }
+  }
+  return { tripsMigrated, emailIndexMigrated };
 }
