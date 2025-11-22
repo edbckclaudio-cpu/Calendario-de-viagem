@@ -12,7 +12,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "md", ...props }, ref) => {
     const variants: Record<string, string> = {
       default:
-        "bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-400",
+        "bg-slate-700 text-white hover:bg-slate-800 focus:ring-2 focus:ring-slate-400",
       secondary:
         "bg-slate-100 text-slate-900 hover:bg-slate-200 focus:ring-2 focus:ring-slate-300",
       ghost:

@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.trae.viagens",
+        "sha256_cert_fingerprints": ["17:0A:CA:84:D1:8C:74:B6:EE:74:77:F6:B2:80:02:DC:98:AB:57:29:69:E6:46:CF:69:83:69:FA:A9:91:5E:15"]
+      }
+    }]

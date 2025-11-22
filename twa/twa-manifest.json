@@ -13,14 +13,14 @@
   "backgroundColor": "#FFFFFF",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://calendario-de-viagem.vercel.app/icons/icon-512.png",
+  "iconUrl": "https://raw.githubusercontent.com/edbckclaudio-cpu/Calendario-de-viagem/main/public/icons/icon-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "C:\\tmp\\Curso_Builder_projetos\\Controle notas produtos\\viagem\\twa\\android.keystore",
     "alias": "android"
   },
-  "appVersionName": "1",
-  "appVersionCode": 1,
+  "appVersionName": "2",
+  "appVersionCode": 2,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://raw.githubusercontent.com/edbckclaudio-cpu/Calendario-de-viagem/main/public/manifest.webmanifest",
@@ -54,5 +54,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "1"
+  "appVersion": "2"
 }

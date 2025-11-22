@@ -513,11 +513,25 @@ export default function EntretenimentoPage() {
 
         <Dialog open={!!openCity} onOpenChange={() => setOpenCity(null)}>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {openCity?.tipo === "atividade" ? "Sugestões de Atividades" : "Sugestões de Restaurantes"}
-              </DialogTitle>
-              <DialogDescription>Selecione uma sugestão ou informe sua escolha final.</DialogDescription>
+          <DialogHeader>
+            <DialogTitle>
+              {openCity?.tipo === "atividade" ? "Sugestões de Atividades" : "Sugestões de Restaurantes"}
+            </DialogTitle>
+            <DialogDescription>Selecione uma sugestão ou informe sua escolha final.</DialogDescription>
+            {(() => {
+              const rg = getRangeForCity(openCity?.cidade);
+              const inicio = rg?.min ? rg.min : "dia de chegada";
+              const fim = rg?.max ? rg.max : "dia de saída";
+              return (
+                <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-2">
+                  <p className="text-sm text-amber-900 font-medium">Atenção aos dias de locomoção</p>
+                  <p className="text-xs text-amber-900">
+                    O primeiro dia ({inicio}) e o último dia ({fim}) costumam ser destinados a deslocamentos, check‑in/check‑out.
+                    Priorize atividades após o check‑in e evite reservas no dia da saída, a menos que haja margem suficiente entre o transporte e a atividade.
+                  </p>
+                </div>
+              );
+            })()}
           </DialogHeader>
           <div className="grid gap-2 mb-2">
             <label className="text-sm">Buscar por nome/tipo</label>

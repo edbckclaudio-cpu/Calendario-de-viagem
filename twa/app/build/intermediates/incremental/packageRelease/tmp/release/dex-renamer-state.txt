@@ -1,0 +1,4 @@
+#Sat Nov 22 15:53:58 BRT 2025
+base.0=C\:\\tmp\\Curso_Builder_projetos\\Controle notas produtos\\viagem\\twa\\app\\build\\intermediates\\dex\\release\\minifyReleaseWithR8\\classes.dex
+renamed.0=classes.dex
+path.0=classes.dex
