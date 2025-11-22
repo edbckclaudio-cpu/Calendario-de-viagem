@@ -4,6 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Toast from "@/components/ui/toast";
 import { getCurrentUser, clearAuth } from "@/lib/auth-local";
+import { ensureAuth, migrateAppId } from "@/lib/firebase";
 
 export default function UserAuthControls() {
   const router = useRouter();
@@ -15,6 +16,20 @@ export default function UserAuthControls() {
     const u = getCurrentUser();
     setEmail(u?.email || null);
   }, [pathname]);
+
+  useEffect(() => {
+    const onceKey = "migrated_TRAE_trip";
+    const already = typeof window !== "undefined" ? sessionStorage.getItem(onceKey) : "1";
+    if (already) return;
+    if (!email) return;
+    (async () => {
+      try {
+        const user = await ensureAuth(email);
+        await migrateAppId(user?.uid || "local-dev-user", email);
+        if (typeof window !== "undefined") sessionStorage.setItem(onceKey, "1");
+      } catch {}
+    })();
+  }, [email]);
 
   function handleLogout() {
     if (typeof window !== "undefined") {
