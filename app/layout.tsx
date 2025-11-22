@@ -16,6 +16,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const useOldLayout = process.env.NEXT_PUBLIC_TRAE_LAYOUT === "old" || !process.env.NEXT_PUBLIC_TRAE_LAYOUT;
   return (
     <html lang="pt-br">
+      <head>
+        <link rel="manifest" href="/manifest.webmanifest" />
+      </head>
       <body>
         <div className="app-shell">
           {useOldLayout ? (
@@ -52,6 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           )}
         </div>
       </body>
+      <script dangerouslySetInnerHTML={{__html: `if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ navigator.serviceWorker.register('/service-worker.js'); }); }`}} />
     </html>
   );
 }
