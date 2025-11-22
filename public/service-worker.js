@@ -1,5 +1,5 @@
 const CACHE_NAME = "trae-cache-v1";
-const PRECACHE_URLS = ["/", "/manifest.json", "/icons/icon-192.svg", "/icons/icon-512.svg"];
+const PRECACHE_URLS = ["/", "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
